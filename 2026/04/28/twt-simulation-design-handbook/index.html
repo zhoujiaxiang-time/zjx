@@ -38,7 +38,7 @@
   
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/fork-awesome@1.2.0/css/fork-awesome.min.css">
 
-<meta name="generator" content="Hexo 8.1.1"></head>
+<meta name="generator" content="Hexo 8.1.1"><script>window.MathJax = {  tex: {    inlineMath: [['\\(', '\\)']],    displayMath: [['\\[', '\\]']],    processEscapes: true  },  options: { skipHtmlTags: ['script', 'noscript', 'style', 'textarea', 'pre', 'code'] }};</script><script defer src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-chtml.js"></script></head>
 
 <body>
   <div id="container">
@@ -112,7 +112,7 @@
 <h3 id="2-1-设计目标"><a href="#2-1-设计目标" class="headerlink" title="2.1 设计目标"></a>2.1 设计目标</h3><ul>
 <li><strong>电流均匀性</strong>：电子注截面内的电流密度变化应控制在 <strong>±10%</strong> 以内。</li>
 <li><strong>层流性</strong>：确保电子轨迹不交叉，以降低背景噪声。</li>
-<li><strong>注腰匹配</strong>：注填充比（电子注半径 $r_b$ &#x2F; 慢波结构通道半径 a）建议为 <strong>0.5~0.7</strong>。</li>
+<li><strong>注腰匹配</strong>：注填充比（电子注半径 <span class="math-inline">\(r_b\)</span> &#x2F; 慢波结构通道半径 a）建议为 <strong>0.5~0.7</strong>。</li>
 </ul>
 <h3 id="2-2-核心设计参数"><a href="#2-2-核心设计参数" class="headerlink" title="2.2 核心设计参数"></a>2.2 核心设计参数</h3><table>
 <thead>
@@ -124,22 +124,22 @@
 </thead>
 <tbody><tr>
 <td align="left"><strong>导流系数</strong></td>
-<td align="left">$P &#x3D; I &#x2F; U^{1.5}$</td>
+<td align="left"><span class="math-inline">\(P = I / U^{1.5}\)</span></td>
 <td align="left">典型值为 <strong>0.1~2.0 μP</strong></td>
 </tr>
 <tr>
 <td align="left"><strong>阴极电流密度</strong></td>
-<td align="left">$J_k$</td>
+<td align="left"><span class="math-inline">\(J_k\)</span></td>
 <td align="left">浸渍钡钨阴极通常为 <strong>2~10 A&#x2F;cm²</strong></td>
 </tr>
 <tr>
 <td align="left"><strong>阴极曲率半径</strong></td>
-<td align="left">$R_k$</td>
-<td align="left">通常取阴极半径 ( r_k ) 的 <strong>2~3倍</strong></td>
+<td align="left"><span class="math-inline">\(R_k\)</span></td>
+<td align="left">通常取阴极半径 <span class="math-inline">\(r_k\)</span> 的 <strong>2~3倍</strong></td>
 </tr>
 <tr>
 <td align="left"><strong>皮尔斯角</strong></td>
-<td align="left">$\theta$</td>
+<td align="left"><span class="math-inline">\(\theta\)</span></td>
 <td align="left">聚焦电极理论角度为 <strong>67.5°</strong></td>
 </tr>
 </tbody></table>
@@ -149,47 +149,59 @@
 <li><strong>EGUN</strong>：经典的二维轴对称仿真工具，适合初步快速迭代。</li>
 </ul>
 <hr>
-<h2 id="3-螺旋线慢波结构仿真（高频设计）"><a href="#3-螺旋线慢波结构仿真（高频设计）" class="headerlink" title="3. 螺旋线慢波结构仿真（高频设计）"></a>3. 螺旋线慢波结构仿真（高频设计）</h2><h3 id="3-1-核心概念"><a href="#3-1-核心概念" class="headerlink" title="3.1 核心概念"></a>3.1 核心概念</h3><p>螺旋线慢波结构（Helix Slow-Wave Structure, SWS）是行波管实现<strong>宽带、高增益</strong>的关键部件。其核心作用是<strong>降低电磁波的轴向相速度</strong>，使其与电子注速度同步（$v_e \approx 1.05v_p \sim 1.1v_p$），从而实现连续的注波能量交换。</p>
+<h2 id="3-螺旋线慢波结构仿真（高频设计）"><a href="#3-螺旋线慢波结构仿真（高频设计）" class="headerlink" title="3. 螺旋线慢波结构仿真（高频设计）"></a>3. 螺旋线慢波结构仿真（高频设计）</h2><h3 id="3-1-核心概念"><a href="#3-1-核心概念" class="headerlink" title="3.1 核心概念"></a>3.1 核心概念</h3><p>螺旋线慢波结构（Helix Slow-Wave Structure, SWS）是行波管实现<strong>宽带、高增益</strong>的关键部件。其核心作用是<strong>降低电磁波的轴向相速度</strong>，使其与电子注速度同步（<span class="math-inline">\(v_e \approx 1.05v_p \sim 1.1v_p\)</span>），从而实现连续的注波能量交换。</p>
 <ul>
-<li><strong>慢波原理</strong>：电磁波沿螺旋导线近似以光速( c )传播，但轴向分量被几何结构“延迟”，形成慢波。</li>
-<li><strong>色散特性</strong>：理想螺旋线具有较低色散（相速度随频率变化小），但实际存在正色散（$v_p$随频率升高略有增加）。需通过金属翼片（Vane）、载荷管壳或介质支撑杆引入<strong>负色散</strong>补偿，实现宽带平坦特性。</li>
-<li><strong>关键参数</strong>：工作频段需远离截止点（$ka \approx 0.5$ 等高阶模），避免振荡。</li>
+<li><strong>慢波原理</strong>：电磁波沿螺旋导线近似以光速<span class="math-inline">\(c\)</span>传播，但轴向分量被几何结构“延迟”，形成慢波。</li>
+<li><strong>色散特性</strong>：理想螺旋线具有较低色散（相速度随频率变化小），但实际存在正色散（<span class="math-inline">\(v_p\)</span>随频率升高略有增加）。需通过金属翼片（Vane）、载荷管壳或介质支撑杆引入<strong>负色散</strong>补偿，实现宽带平坦特性。</li>
+<li><strong>关键参数</strong>：工作频段需远离截止点（<span class="math-inline">\(ka \approx 0.5\)</span> 等高阶模），避免振荡。</li>
 </ul>
-<h4 id="相速度-v-p-的公式与推导"><a href="#相速度-v-p-的公式与推导" class="headerlink" title="相速度 ( $v_p$ ) 的公式与推导"></a>相速度 ( $v_p$ ) 的公式与推导</h4><p>理想鞘螺旋（sheath helix）模型下，电磁波沿导线传播速度近似( c )。一个螺距( p )的轴向距离内，导线实际路径长度为$\sqrt{p^2 + (2\pi a)^2}$，因此轴向相速度为：<br>$$<br>v_p \approx c \cdot \frac{p}{\sqrt{p^2 + (2\pi a)^2}} &#x3D; c \sin\psi<br>$$<br>其中<strong>节距角</strong> $ \psi &#x3D; \tan^{-1}\left( \frac{p}{2\pi a} \right)$，( a )为螺旋线半径，( p )为螺距。</p>
-<p><strong>小节距角近似</strong>（$p \ll 2\pi a$，常见于实际TWT）：<br>$$<br>v_p \approx c \cdot \frac{p}{2\pi a}<br>$$<br><strong>推导思路</strong>：几何运动学（kinematic approximation），忽略高频边界条件时的简化模型。精确色散需求解sheath helix的特征方程（涉及修正Bessel函数 $I_0(\gamma a)$、 $K_0(\gamma a)$等），但仿真中通常用CST MWS&#x2F;HFSS直接计算色散曲线。</p>
+<h4 id="相速度-v-p-的公式与推导"><a href="#相速度-v-p-的公式与推导" class="headerlink" title="相速度 \(v_p\) 的公式与推导"></a>相速度 <span class="math-inline">\(v_p\)</span> 的公式与推导</h4><p>理想鞘螺旋（sheath helix）模型下，电磁波沿导线传播速度近似<span class="math-inline">\(c\)</span>。一个螺距<span class="math-inline">\(p\)</span>的轴向距离内，导线实际路径长度为<span class="math-inline">\(\sqrt{p^2 + (2\pi a)^2}\)</span>，因此轴向相速度为：</p>
+<div class="math-display">\[v_p \approx c \cdot \frac{p}{\sqrt{p^2 + (2\pi a)^2}} = c \sin\psi\]</div>
+
+<p>其中<strong>节距角</strong> <span class="math-inline">\(\psi = \tan^{-1}\left( \frac{p}{2\pi a} \right)\)</span>，<span class="math-inline">\(a\)</span>为螺旋线半径，<span class="math-inline">\(p\)</span>为螺距。</p>
+<p><strong>小节距角近似</strong>（<span class="math-inline">\(p \ll 2\pi a\)</span>，常见于实际TWT）：</p>
+<div class="math-display">\[v_p \approx c \cdot \frac{p}{2\pi a}\]</div>
+
+<p><strong>推导思路</strong>：几何运动学（kinematic approximation），忽略高频边界条件时的简化模型。精确色散需求解sheath helix的特征方程（涉及修正Bessel函数 <span class="math-inline">\(I_0(\gamma a)\)</span>、 <span class="math-inline">\(K_0(\gamma a)\)</span>等），但仿真中通常用CST MWS&#x2F;HFSS直接计算色散曲线。</p>
 <p><strong>物理意义</strong>：  </p>
 <ul>
-<li>决定了同步频率点。增大( p )或减小( a )可提高( $v_p$ )，使同步频率向高频漂移。  </li>
-<li>仿真调参核心：通过$v_p$匹配电子注速度$v_e &#x3D; \sqrt{2\eta U}$（$\eta &#x3D; e&#x2F;m$，（U）为注电压），实现高效能量交换。</li>
+<li>决定了同步频率点。增大<span class="math-inline">\(p\)</span>或减小<span class="math-inline">\(a\)</span>可提高<span class="math-inline">\(v_p\)</span>，使同步频率向高频漂移。  </li>
+<li>仿真调参核心：通过<span class="math-inline">\(v_p\)</span>匹配电子注速度<span class="math-inline">\(v_e = \sqrt{2\eta U}\)</span>（<span class="math-inline">\(\eta = e/m\)</span>，（U）为注电压），实现高效能量交换。</li>
 </ul>
 <h4 id="色散特性与介质负载因子（DLF）"><a href="#色散特性与介质负载因子（DLF）" class="headerlink" title="色散特性与介质负载因子（DLF）"></a>色散特性与介质负载因子（DLF）</h4><ul>
-<li><strong>介质负载因子</strong>：<br>$$<br>DLF &#x3D; \frac{v_p(\text{有介质支撑杆})}{v_p(\text{无介质})}<br>$$<br>通常( DLF &lt; 1 )（介质使波速进一步减慢）。  </li>
-<li><strong>物理意义</strong>：支撑杆（BN、BeO等低 $\varepsilon_r$ 材料）会降低有效相速度，设计螺距( p )时需预先修正( DLF )，否则同步点偏移。</li>
+<li><strong>介质负载因子</strong>：</li>
 </ul>
-<p><strong>ka参数</strong>（$k &#x3D; \omega&#x2F;c$）：工作在( 0.3 &lt; ka &lt; 1.5 )，避免高次模和低阻抗区。</p>
-<h3 id="3-2-耦合阻抗-K-的优化"><a href="#3-2-耦合阻抗-K-的优化" class="headerlink" title="3.2 耦合阻抗 ( K ) 的优化"></a>3.2 耦合阻抗 ( K ) 的优化</h3><p>$$<br>K &#x3D; \frac{|E_z|^2}{2 \beta^2 P}<br>$$</p>
+<div class="math-display">\[DLF = \frac{v_p(\text{有介质支撑杆})}{v_p(\text{无介质})}\]</div>
+
+<p>  通常<span class="math-inline">\(DLF &lt; 1\)</span>（介质使波速进一步减慢）。  </p>
 <ul>
-<li>$E_z$ ：轴线轴向电场强度；  </li>
-<li>$\beta &#x3D; \omega &#x2F; v_p$ ：传播常数；  </li>
+<li><strong>物理意义</strong>：支撑杆（BN、BeO等低 <span class="math-inline">\(\varepsilon_r\)</span> 材料）会降低有效相速度，设计螺距<span class="math-inline">\(p\)</span>时需预先修正<span class="math-inline">\(DLF\)</span>，否则同步点偏移。</li>
+</ul>
+<p><strong>ka参数</strong>（<span class="math-inline">\(k = \omega/c\)</span>）：工作在<span class="math-inline">\(0.3 &lt; ka &lt; 1.5\)</span>，避免高次模和低阻抗区。</p>
+<h3 id="3-2-耦合阻抗-K-的优化"><a href="#3-2-耦合阻抗-K-的优化" class="headerlink" title="3.2 耦合阻抗 \(K\) 的优化"></a>3.2 耦合阻抗 <span class="math-inline">\(K\)</span> 的优化</h3><div class="math-display">\[K = \frac{|E_z|^2}{2 \beta^2 P}\]</div>
+
+<ul>
+<li><span class="math-inline">\(E_z\)</span> ：轴线轴向电场强度；  </li>
+<li><span class="math-inline">\(\beta = \omega / v_p\)</span> ：传播常数；  </li>
 <li>P ：通过慢波结构的平均 RF 功率流。</li>
 </ul>
 <p><strong>物理意义</strong>：  </p>
 <ul>
-<li>( K ) 直接衡量<strong>注波互作用强度</strong>。高( K )意味着轴线处更强的电场，能更有效地从电子注提取能量，从而提高增益和效率。但过高的( K )常伴随色散加剧、带宽变窄（trade-off）。  </li>
-<li>Pierce理论中，( K )是计算增益参数( C )的核心输入量。</li>
+<li><span class="math-inline">\(K\)</span> 直接衡量<strong>注波互作用强度</strong>。高<span class="math-inline">\(K\)</span>意味着轴线处更强的电场，能更有效地从电子注提取能量，从而提高增益和效率。但过高的<span class="math-inline">\(K\)</span>常伴随色散加剧、带宽变窄（trade-off）。  </li>
+<li>Pierce理论中，<span class="math-inline">\(K\)</span>是计算增益参数<span class="math-inline">\(C\)</span>的核心输入量。</li>
 </ul>
 <p><strong>优化手段</strong>（仿真指导）：  </p>
 <ul>
-<li>减小支撑杆体积、选用低( $\varepsilon_r$ )、高导热材料（如BN、diamond）→ 减少非注区能量损耗，提升轴线( $E_z$ )。  </li>
-<li>管壳内径比( $b&#x2F;a &#x3D; 1.5 \sim 3.0$ )：增大( b )可提高( K )，但需兼顾色散平坦度。  </li>
-<li>螺旋线宽度( $\delta$ )：增大( $\delta$ )降低导体损耗，但会略微降低( K )。</li>
+<li>减小支撑杆体积、选用低<span class="math-inline">\(\varepsilon_r\)</span>、高导热材料（如BN、diamond）→ 减少非注区能量损耗，提升轴线<span class="math-inline">\(E_z\)</span>。  </li>
+<li>管壳内径比<span class="math-inline">\(b/a = 1.5 \sim 3.0\)</span>：增大<span class="math-inline">\(b\)</span>可提高<span class="math-inline">\(K\)</span>，但需兼顾色散平坦度。  </li>
+<li>螺旋线宽度<span class="math-inline">\(\delta\)</span>：增大<span class="math-inline">\(\delta\)</span>降低导体损耗，但会略微降低<span class="math-inline">\(K\)</span>。</li>
 </ul>
 <hr>
 <h2 id="4-磁聚焦系统仿真设计"><a href="#4-磁聚焦系统仿真设计" class="headerlink" title="4. 磁聚焦系统仿真设计"></a>4. 磁聚焦系统仿真设计</h2><h3 id="4-1-周期永磁（PPM）聚焦"><a href="#4-1-周期永磁（PPM）聚焦" class="headerlink" title="4.1 周期永磁（PPM）聚焦"></a>4.1 周期永磁（PPM）聚焦</h3><p>PPM 系统通过交替极性的磁场实现电子注的径向约束。</p>
 <ul>
-<li><strong>布里渊磁场 ($B_B$)</strong>：$B_B &#x3D; (1&#x2F;\eta_0) \cdot \sqrt{2U&#x2F;\eta} \cdot (1&#x2F;r_b)$。</li>
-<li><strong>磁场峰值 ($B_m$)</strong>：通常取布里渊磁场的 <strong>1.2~1.5 倍</strong>。</li>
-<li><strong>稳定条件</strong>：磁场周期 ( L ) 需满足 $L &lt; \pi r_b \sqrt{2}$。</li>
+<li><strong>布里渊磁场 (<span class="math-inline">\(B_B\)</span>)</strong>：<span class="math-inline">\(B_B = (1/\eta_0) \cdot \sqrt{2U/\eta} \cdot (1/r_b)\)</span>。</li>
+<li><strong>磁场峰值 (<span class="math-inline">\(B_m\)</span>)</strong>：通常取布里渊磁场的 <strong>1.2~1.5 倍</strong>。</li>
+<li><strong>稳定条件</strong>：磁场周期 <span class="math-inline">\(L\)</span> 需满足 <span class="math-inline">\(L &lt; \pi r_b \sqrt{2}\)</span>。</li>
 </ul>
 <h3 id="4-2-仿真软件"><a href="#4-2-仿真软件" class="headerlink" title="4.2 仿真软件"></a>4.2 仿真软件</h3><ul>
 <li><strong>ANSYS Maxwell</strong>：用于精确的三维磁路有限元分析。</li>
@@ -199,7 +211,7 @@
 <h2 id="5-多级降压收集极（MDC）设计"><a href="#5-多级降压收集极（MDC）设计" class="headerlink" title="5. 多级降压收集极（MDC）设计"></a>5. 多级降压收集极（MDC）设计</h2><h3 id="5-1-效率仿真"><a href="#5-1-效率仿真" class="headerlink" title="5.1 效率仿真"></a>5.1 效率仿真</h3><ul>
 <li><strong>原理</strong>：回收互作用后电子的剩余动能，显著提升整管效率。</li>
 <li><strong>效率提升</strong>：5 级降压收集极可使效率达到 <strong>80% 以上</strong>。</li>
-<li><strong>总效率公式</strong>：$\eta_{total} &#x3D; \eta_e &#x2F; (1 - \eta_c \times (1 - \eta_e))$。</li>
+<li><strong>总效率公式</strong>：<span class="math-inline">\(\eta_{total} = \eta_e / (1 - \eta_c \times (1 - \eta_e))\)</span>。</li>
 </ul>
 <h3 id="5-2-仿真关键点"><a href="#5-2-仿真关键点" class="headerlink" title="5.2 仿真关键点"></a>5.2 仿真关键点</h3><ul>
 <li><strong>级数选择</strong>：通常为 <strong>2~5 级</strong>。</li>
@@ -222,54 +234,65 @@
 <li><strong>能量交换</strong>：聚束电子团处于电磁波的<strong>减速场</strong>，持续交出动能。</li>
 </ol>
 <h3 id="7-2-Pierce小信号理论（公式推导与物理意义）"><a href="#7-2-Pierce小信号理论（公式推导与物理意义）" class="headerlink" title="7.2 Pierce小信号理论（公式推导与物理意义）"></a>7.2 Pierce小信号理论（公式推导与物理意义）</h3><h4 id="关键Pierce参数"><a href="#关键Pierce参数" class="headerlink" title="关键Pierce参数"></a>关键Pierce参数</h4><ol>
-<li><p><strong>增益参数 ( C )</strong>（Pierce gain parameter）：<br>$$<br>C &#x3D; \left( \frac{K I_0}{4 V_0} \right)^{1&#x2F;3}<br>$$</p>
+<li><strong>增益参数 <span class="math-inline">\(C\)</span></strong>（Pierce gain parameter）：</li>
+</ol>
+<div class="math-display">\[C = \left( \frac{K I_0}{4 V_0} \right)^{1/3}\]</div>
+
+   
 <ul>
-<li>K ：耦合阻抗；$ I_0$：注电流；$V_0$：注电压。  </li>
+<li>K ：耦合阻抗；<span class="math-inline">\(I_0\)</span>：注电流；<span class="math-inline">\(V_0\)</span>：注电压。  </li>
 <li><strong>典型值</strong>：0.01~0.2。  </li>
 <li><strong>物理意义</strong>：<strong>衡量电路与电子注的耦合强度</strong>。C 越大，互作用越强，单位长度增益越高。  </li>
 <li><strong>来源</strong>：由电路方程（传输线）和电子运动方程线性化后联立得到。</li>
 </ul>
-</li>
-<li><p><strong>速度参数 ( b )</strong>：<br>$$<br>b &#x3D; \frac{v_e - v_p}{C v_p}<br>$$</p>
-<ul>
-<li>同步时( $b \approx 0$ )。  </li>
-<li><strong>物理意义</strong>：描述电子注速度与波速的失配程度。( b &gt; 0 )（电子略快）利于增益。</li>
-</ul>
-</li>
-<li><p><strong>空间电荷参数 ( QC )</strong> 和损耗参数 ( d )：分别表征电子注内去聚束效应和电路衰减。</p>
-</li>
+<ol start="2">
+<li><strong>速度参数 <span class="math-inline">\(b\)</span></strong>：</li>
 </ol>
-<h4 id="小信号增益公式"><a href="#小信号增益公式" class="headerlink" title="小信号增益公式"></a>小信号增益公式</h4><p>$$<br>G(\text{dB}) \approx A + B C N<br>$$</p>
+<div class="math-display">\[b = \frac{v_e - v_p}{C v_p}\]</div>
+
+   
 <ul>
-<li>( $N &#x3D; L &#x2F; \lambda_e$ )：互作用长度以电子波长为单位的归一化长度；  </li>
-<li>( $A \approx -9 \sim -6,\text{dB}$ )（初始损耗，建立增长波模式）；  </li>
-<li>( $B \approx 47 \sim 54$ )（与( b )、( QC )有关，同步时最高）。</li>
+<li>同步时<span class="math-inline">\(b \approx 0\)</span>。  </li>
+<li><strong>物理意义</strong>：描述电子注速度与波速的失配程度。<span class="math-inline">\(b &gt; 0\)</span>（电子略快）利于增益。</li>
 </ul>
-<p><strong>推导思路</strong>（Pierce模型）：<br>电路方程 + 电子运动方程 + 空间电荷方程 → 得到关于传播常数( \Gamma )的<strong>4次代数方程</strong>（或简化3次方程）。求解得到<strong>增长波</strong>（虚部正），增长率 ( $\approx (\beta_e C) \cdot \sqrt{3}&#x2F;2$ )，积分后得到指数增益 ($ e^{ \beta_e C N \cdot \text{常数} }$ )，转换为dB即47.3 CN形式。</p>
+<ol start="3">
+<li><strong>空间电荷参数 <span class="math-inline">\(QC\)</span></strong> 和损耗参数 <span class="math-inline">\(d\)</span>：分别表征电子注内去聚束效应和电路衰减。</li>
+</ol>
+<h4 id="小信号增益公式"><a href="#小信号增益公式" class="headerlink" title="小信号增益公式"></a>小信号增益公式</h4><div class="math-display">\[G(\text{dB}) \approx A + B C N\]</div>
+
+<ul>
+<li><span class="math-inline">\(N = L / \lambda_e\)</span>：互作用长度以电子波长为单位的归一化长度；  </li>
+<li><span class="math-inline">\(A \approx -9 \sim -6\,\text{dB}\)</span>（初始损耗，建立增长波模式）；  </li>
+<li><span class="math-inline">\(B \approx 47 \sim 54\)</span>（与<span class="math-inline">\(b\)</span>、<span class="math-inline">\(QC\)</span>有关，同步时最高）。</li>
+</ul>
+<p><strong>推导思路</strong>（Pierce模型）：<br>电路方程 + 电子运动方程 + 空间电荷方程 → 得到关于传播常数<span class="math-inline">\(\Gamma\)</span>的<strong>4次代数方程</strong>（或简化3次方程）。求解得到<strong>增长波</strong>（虚部正），增长率 <span class="math-inline">\(\approx (\beta_e C) \cdot \sqrt{3}/2\)</span>，积分后得到指数增益 <span class="math-inline">\(e^{ \beta_e C N \cdot \text{常数} }\)</span>，转换为dB即47.3 CN形式。</p>
 <p><strong>物理意义</strong>：  </p>
 <ul>
 <li>预测<strong>小信号增益</strong>（线性区，30~60 dB）。  </li>
-<li>仿真验证：先用冷特性得到( K )和( v_p )，再计算( C )，快速预估增益是否达标。</li>
+<li>仿真验证：先用冷特性得到<span class="math-inline">\(K\)</span>和<span class="math-inline">\(v_p\)</span>，再计算<span class="math-inline">\(C\)</span>，快速预估增益是否达标。</li>
 </ul>
 <h3 id="7-3-大信号仿真与效率提升"><a href="#7-3-大信号仿真与效率提升" class="headerlink" title="7.3 大信号仿真与效率提升"></a>7.3 大信号仿真与效率提升</h3><ul>
-<li><strong>同步失效</strong>：随互作用进行，电子失去动能减速，$v_e$下降，同步失效，功率增长趋缓。</li>
+<li><strong>同步失效</strong>：随互作用进行，电子失去动能减速，<span class="math-inline">\(v_e\)</span>下降，同步失效，功率增长趋缓。</li>
 <li><strong>节距渐变（Pitch Tapering）技术</strong>：<ul>
-<li>在输出段<strong>减小螺距( p )</strong>，降低( v_p )，重新捕捉减速电子。</li>
+<li>在输出段<strong>减小螺距<span class="math-inline">\(p\)</span></strong>，降低<span class="math-inline">\(v_p\)</span>，重新捕捉减速电子。</li>
 <li><strong>正向&#x2F;反向渐变</strong>：通过优化渐变长度、幅度和跳变位置，平衡功率输出与谐波抑制。</li>
-<li><strong>物理意义</strong>：<strong>延长有效同步长度</strong>，显著提升<strong>互作用效率$\eta_e$</strong>（可提高10~20%）。</li>
+<li><strong>物理意义</strong>：<strong>延长有效同步长度</strong>，显著提升<strong>互作用效率<span class="math-inline">\(\eta_e\)</span></strong>（可提高10~20%）。</li>
 </ul>
 </li>
 </ul>
-<p><strong>总效率公式</strong>（结合收集极）：<br>$$<br>\eta_{\text{total}} &#x3D; \frac{\eta_e}{1 - \eta_c (1 - \eta_e)}<br>$$<br>（$ \eta_c$为收集极回收效率）。</p>
+<p><strong>总效率公式</strong>（结合收集极）：</p>
+<div class="math-display">\[\eta_{\text{total}} = \frac{\eta_e}{1 - \eta_c (1 - \eta_e)}\]</div>
+
+<p>（<span class="math-inline">\(\eta_c\)</span>为收集极回收效率）。</p>
 <h3 id="7-4-稳定性与振荡抑制"><a href="#7-4-稳定性与振荡抑制" class="headerlink" title="7.4 稳定性与振荡抑制"></a>7.4 稳定性与振荡抑制</h3><ul>
 <li><strong>衰减器</strong>：螺旋线中段设置集中衰减涂层，吸收反射波，防止反馈自激。</li>
 <li><strong>仿真关键</strong>：监测相空间图（Phase Space）、功率增长曲线、频谱纯度。VSWR失配下仍需稳定。</li>
 </ul>
 <h3 id="7-5-常用仿真流程（更新）"><a href="#7-5-常用仿真流程（更新）" class="headerlink" title="7.5 常用仿真流程（更新）"></a>7.5 常用仿真流程（更新）</h3><ol>
-<li><strong>冷特性</strong>：CST MWS &#x2F; HFSS → 色散曲线、 K 、$ \alpha$ 。  </li>
+<li><strong>冷特性</strong>：CST MWS &#x2F; HFSS → 色散曲线、 K 、<span class="math-inline">\(\alpha\)</span> 。  </li>
 <li><strong>Pierce参数快速估算</strong>：用公式验证同步与增益潜力。  </li>
 <li><strong>热特性</strong>：CST Particle Studio → 导入冷特性 + 电子注参数 → 观察聚束、功率曲线。  </li>
-<li><strong>参数迭代</strong>：根据功率&#x2F;频谱反馈，调整( p )分布、渐变段、衰减器位置。</li>
+<li><strong>参数迭代</strong>：根据功率&#x2F;频谱反馈，调整<span class="math-inline">\(p\)</span>分布、渐变段、衰减器位置。</li>
 </ol>
 <hr>
 <h1 id="螺旋线慢波结构与注波互作用：仿真优化与调参指南"><a href="#螺旋线慢波结构与注波互作用：仿真优化与调参指南" class="headerlink" title="螺旋线慢波结构与注波互作用：仿真优化与调参指南"></a>螺旋线慢波结构与注波互作用：仿真优化与调参指南</h1><h2 id="1-结构参数与性能目标关联表"><a href="#1-结构参数与性能目标关联表" class="headerlink" title="1. 结构参数与性能目标关联表"></a>1. 结构参数与性能目标关联表</h2><p>当仿真结果与设计目标存在偏差时，可参考下表进行参数微调：</p>
@@ -283,10 +306,10 @@
 </tr>
 </thead>
 <tbody><tr>
-<td><strong>相速度 ( $v_p$ )</strong> &#x2F; 色散</td>
+<td><strong>相速度 <span class="math-inline">\(v_p\)</span></strong> &#x2F; 色散</td>
 <td>相速度偏低</td>
 <td><strong>增大</strong> 螺距 p  或 <strong>减小</strong> 螺旋线半径  a</td>
-<td>$v_p \approx c \cdot p &#x2F; \sqrt{p^2 + (2\pi a)^2}$</td>
+<td><span class="math-inline">\(v_p \approx c \cdot p / \sqrt{p^2 + (2\pi a)^2}\)</span></td>
 </tr>
 <tr>
 <td></td>
@@ -295,19 +318,19 @@
 <td>增强金属负载效应，引入负色散</td>
 </tr>
 <tr>
-<td><strong>耦合阻抗 ( K )</strong></td>
+<td><strong>耦合阻抗 <span class="math-inline">\(K\)</span></strong></td>
 <td>阻抗偏低</td>
 <td><strong>增大</strong>  b  或 <strong>减小</strong> 介质支撑杆体积</td>
-<td>减少非注区能量损耗，提升轴线 $E_z$</td>
+<td>减少非注区能量损耗，提升轴线 <span class="math-inline">\(E_z\)</span></td>
 </tr>
 <tr>
-<td><strong>衰减常数 ( $\alpha$ )</strong></td>
+<td><strong>衰减常数 ( <span class="math-inline">\(\alpha\)</span> )</strong></td>
 <td>损耗过大</td>
-<td><strong>增大</strong> 螺旋线宽度 $\delta$</td>
+<td><strong>增大</strong> 螺旋线宽度 <span class="math-inline">\(\delta\)</span></td>
 <td>线宽增加可降低高频电流密度，减少导体损耗。</td>
 </tr>
 <tr>
-<td><strong>互作用效率 ( $\eta_e$ )</strong></td>
+<td><strong>互作用效率 ( <span class="math-inline">\(\eta_e\)</span> )</strong></td>
 <td>效率未达标</td>
 <td>输出段采用<strong>节距渐变</strong>（减小 p ）</td>
 <td>再同步减速电子，延长能量交换距离</td>
@@ -316,26 +339,26 @@
 <td><strong>小信号增益 ( G )</strong></td>
 <td>增益不足</td>
 <td><strong>增加</strong> 互作用长度 或 <strong>提高</strong> K（增大 C )</td>
-<td>$G \propto C N$，$C \propto K^{1&#x2F;3}$</td>
+<td><span class="math-inline">\(G \propto C N\)</span>，<span class="math-inline">\(C \propto K^{1/3}\)</span></td>
 </tr>
 </tbody></table>
 <h2 id="2-高频慢波结构仿真优化路径"><a href="#2-高频慢波结构仿真优化路径" class="headerlink" title="2. 高频慢波结构仿真优化路径"></a>2. 高频慢波结构仿真优化路径</h2><h3 id="2-1-色散与同步特性调优"><a href="#2-1-色散与同步特性调优" class="headerlink" title="2.1 色散与同步特性调优"></a>2.1 色散与同步特性调优</h3><ul>
-<li><strong>同步条件校验</strong>：仿真中需确保电子注速度 ( $v_e$ ) 略大于慢波相速度 ( $v_p$ )。</li>
+<li><strong>同步条件校验</strong>：仿真中需确保电子注速度 <span class="math-inline">\(v_e\)</span> 略大于慢波相速度 <span class="math-inline">\(v_p\)</span>。</li>
 <li><strong>参数影响敏感度</strong>：<ul>
-<li><strong>螺距 ( p )</strong>：是对相速度最敏感的调节量。若同步频率点向高频漂移，需适当减小螺距。</li>
-<li><strong>内半径 ( a )</strong>：影响 ( ka ) 值。若 ( ka &gt; 1.5 )，易产生高次模干扰；若 ( ka &lt; 0.3 )，耦合阻抗会显著下降。</li>
+<li><strong>螺距 <span class="math-inline">\(p\)</span></strong>：是对相速度最敏感的调节量。若同步频率点向高频漂移，需适当减小螺距。</li>
+<li><strong>内半径 <span class="math-inline">\(a\)</span></strong>：影响 <span class="math-inline">\(ka\)</span> 值。若 <span class="math-inline">\(ka &gt; 1.5\)</span>，易产生高次模干扰；若 <span class="math-inline">\(ka &lt; 0.3\)</span>，耦合阻抗会显著下降。</li>
 </ul>
 </li>
 <li><strong>介质杆修正</strong>：仿真软件中若未考虑介质杆，实际相速度会偏低。需通过调整支撑杆材料（如改用低介电常数的 BN）来优化色散。</li>
 </ul>
 <h3 id="2-2-耦合阻抗与匹配调优"><a href="#2-2-耦合阻抗与匹配调优" class="headerlink" title="2.2 耦合阻抗与匹配调优"></a>2.2 耦合阻抗与匹配调优</h3><ul>
-<li><strong>管壳效应</strong>：管壳内半径 ( b ) 的变化会同时影响阻抗和色散。通常在满足色散平坦的前提下，尽量增大 ( b ) 以获得更高的耦合阻抗。</li>
-<li><strong>螺旋线宽度 ( $\delta$ )</strong>：虽然主要影响功率容量，但过宽的线会增加分布电容，导致耦合阻抗 ( K ) 略微下降。</li>
+<li><strong>管壳效应</strong>：管壳内半径 <span class="math-inline">\(b\)</span> 的变化会同时影响阻抗和色散。通常在满足色散平坦的前提下，尽量增大 <span class="math-inline">\(b\)</span> 以获得更高的耦合阻抗。</li>
+<li><strong>螺旋线宽度 <span class="math-inline">\(\delta\)</span></strong>：虽然主要影响功率容量，但过宽的线会增加分布电容，导致耦合阻抗 <span class="math-inline">\(K\)</span> 略微下降。</li>
 </ul>
 <hr>
 <h2 id="3-注波互作用仿真关键逻辑"><a href="#3-注波互作用仿真关键逻辑" class="headerlink" title="3. 注波互作用仿真关键逻辑"></a>3. 注波互作用仿真关键逻辑</h2><h3 id="3-1-效率与非线性优化"><a href="#3-1-效率与非线性优化" class="headerlink" title="3.1 效率与非线性优化"></a>3.1 效率与非线性优化</h3><ul>
-<li><strong>电子团聚（Bunching）</strong>：观察仿真中的相空间图（Phase Space）。若电子团聚点提前或滞后，需调整互作用区的起始位置或电压 ( U )。</li>
-<li><strong>再同步技术</strong>：在仿真后期，若发现输出功率增量趋缓，应在输出端设置 <strong>“跳变节距”</strong> 段（即改变结构周期长度 ( p )），强制波速减慢以重新捕捉减速电子。</li>
+<li><strong>电子团聚（Bunching）</strong>：观察仿真中的相空间图（Phase Space）。若电子团聚点提前或滞后，需调整互作用区的起始位置或电压 <span class="math-inline">\(U\)</span>。</li>
+<li><strong>再同步技术</strong>：在仿真后期，若发现输出功率增量趋缓，应在输出端设置 <strong>“跳变节距”</strong> 段（即改变结构周期长度 <span class="math-inline">\(p\)</span>），强制波速减慢以重新捕捉减速电子。</li>
 </ul>
 <h3 id="3-2-稳定性与频谱控制"><a href="#3-2-稳定性与频谱控制" class="headerlink" title="3.2 稳定性与频谱控制"></a>3.2 稳定性与频谱控制</h3><ul>
 <li><strong>谐波抑制</strong>：若输出信号中谐波分量过高（&gt; -15 dBc），应检查螺旋线色散。通过微调 <strong>管壳内半径</strong> 或增加 <strong>金属翼片负载</strong> 来破坏谐波的同步条件。</li>
@@ -345,7 +368,7 @@
       
     </div>
     <footer class="article-footer">
-      <a data-url="https://zhoujiaxiang-time.github.io/zjx/2026/04/28/twt-simulation-design-handbook/" data-id="cuiddQKWvSQSrBtEkQF6Xj7xl" data-title="螺旋线行波管仿真设计手册" class="article-share-link"><span class="fa fa-share">分享</span></a>
+      <a data-url="https://zhoujiaxiang-time.github.io/zjx/2026/04/28/twt-simulation-design-handbook/" data-id="cuidSh104ygGQkM2qWZ65t6Mb" data-title="螺旋线行波管仿真设计手册" class="article-share-link"><span class="fa fa-share">分享</span></a>
       
       
       
