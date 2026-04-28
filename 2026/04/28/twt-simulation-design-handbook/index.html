@@ -4,35 +4,35 @@
   <meta charset="utf-8">
   
   
-  <title>螺旋线行波管仿真设计手册 | Hexo</title>
+  <title>螺旋线行波管仿真设计手册 | 周佳祥的博客</title>
   <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
   <meta name="description" content="螺旋线行波管（TWT）仿真设计手册1. 核心工作原理行波管是利用电子注与慢波结构中微波信号的能量交换实现放大的真空电子器件。  同步条件：电子注速度需略大于慢波结构中电磁波的相速度。 能量转换：电子将动能转移给电磁波，从而实现信号的连续放大。   2. 电子枪仿真设计电子枪的任务是产生具有特定电流密度和形状的电子注。 2.1 设计目标 电流均匀性：电子注截面内的电流密度变化应控制在 ±10% 以内">
 <meta property="og:type" content="article">
 <meta property="og:title" content="螺旋线行波管仿真设计手册">
-<meta property="og:url" content="http://example.com/2026/04/28/twt-simulation-design-handbook/index.html">
-<meta property="og:site_name" content="Hexo">
+<meta property="og:url" content="https://zhoujiaxiang-time.github.io/zjx/2026/04/28/twt-simulation-design-handbook/index.html">
+<meta property="og:site_name" content="周佳祥的博客">
 <meta property="og:description" content="螺旋线行波管（TWT）仿真设计手册1. 核心工作原理行波管是利用电子注与慢波结构中微波信号的能量交换实现放大的真空电子器件。  同步条件：电子注速度需略大于慢波结构中电磁波的相速度。 能量转换：电子将动能转移给电磁波，从而实现信号的连续放大。   2. 电子枪仿真设计电子枪的任务是产生具有特定电流密度和形状的电子注。 2.1 设计目标 电流均匀性：电子注截面内的电流密度变化应控制在 ±10% 以内">
-<meta property="og:locale" content="en_US">
+<meta property="og:locale" content="zh_CN">
 <meta property="article:published_time" content="2026-04-28T10:20:00.000Z">
 <meta property="article:modified_time" content="2026-04-28T11:08:46.172Z">
-<meta property="article:author" content="John Doe">
+<meta property="article:author" content="周佳祥">
 <meta property="article:tag" content="TWT">
 <meta property="article:tag" content="仿真设计">
 <meta property="article:tag" content="行波管">
 <meta name="twitter:card" content="summary">
   
-    <link rel="alternate" href="/atom.xml" title="Hexo" type="application/atom+xml">
+    <link rel="alternate" href="/zjx/atom.xml" title="周佳祥的博客" type="application/atom+xml">
   
   
-    <link rel="shortcut icon" href="/favicon.png">
+    <link rel="shortcut icon" href="/zjx/favicon.png">
   
   
   
-<link rel="stylesheet" href="/css/style.css">
+<link rel="stylesheet" href="/zjx/css/style.css">
 
   
     
-<link rel="stylesheet" href="/fancybox/jquery.fancybox.min.css">
+<link rel="stylesheet" href="/zjx/fancybox/jquery.fancybox.min.css">
 
   
   
@@ -48,7 +48,7 @@
   <div id="header-outer" class="outer">
     <div id="header-title" class="inner">
       <h1 id="logo-wrap">
-        <a href="/" id="logo">Hexo</a>
+        <a href="/zjx/" id="logo">周佳祥的博客</a>
       </h1>
       
     </div>
@@ -56,20 +56,20 @@
       <nav id="main-nav">
         <a id="main-nav-toggle" class="nav-icon"><span class="fa fa-bars"></span></a>
         
-          <a class="main-nav-link" href="/">Home</a>
+          <a class="main-nav-link" href="/zjx/">Home</a>
         
-          <a class="main-nav-link" href="/archives">Archives</a>
+          <a class="main-nav-link" href="/zjx/archives">Archives</a>
         
       </nav>
       <nav id="sub-nav">
         
         
-          <a class="nav-icon" href="/atom.xml" title="RSS Feed"><span class="fa fa-rss"></span></a>
+          <a class="nav-icon" href="/zjx/atom.xml" title="RSS 订阅"><span class="fa fa-rss"></span></a>
         
-        <a class="nav-icon nav-search-btn" title="Search"><span class="fa fa-search"></span></a>
+        <a class="nav-icon nav-search-btn" title="搜索"><span class="fa fa-search"></span></a>
       </nav>
       <div id="search-form-wrap">
-        <form action="//google.com/search" method="get" accept-charset="UTF-8" class="search-form"><input type="search" name="q" class="search-form-input" placeholder="Search"><button type="submit" class="search-form-submit">&#xF002;</button><input type="hidden" name="sitesearch" value="http://example.com"></form>
+        <form action="//google.com/search" method="get" accept-charset="UTF-8" class="search-form"><input type="search" name="q" class="search-form-input" placeholder="搜索"><button type="submit" class="search-form-submit">&#xF002;</button><input type="hidden" name="sitesearch" value="https://zhoujiaxiang-time.github.io/zjx"></form>
       </div>
     </div>
   </div>
@@ -78,12 +78,12 @@
       <div class="outer">
         <section id="main"><article id="post-twt-simulation-design-handbook" class="h-entry article article-type-post" itemprop="blogPost" itemscope itemtype="https://schema.org/BlogPosting">
   <div class="article-meta">
-    <a href="/2026/04/28/twt-simulation-design-handbook/" class="article-date">
+    <a href="/zjx/2026/04/28/twt-simulation-design-handbook/" class="article-date">
   <time class="dt-published" datetime="2026-04-28T10:20:00.000Z" itemprop="datePublished">2026-04-28</time>
 </a>
     
   <div class="article-category">
-    <a class="article-category-link" href="/categories/%E6%8A%80%E6%9C%AF%E6%96%87%E6%A1%A3/">技术文档</a>
+    <a class="article-category-link" href="/zjx/categories/%E6%8A%80%E6%9C%AF%E6%96%87%E6%A1%A3/">技术文档</a>
   </div>
 
   </div>
@@ -345,11 +345,11 @@
       
     </div>
     <footer class="article-footer">
-      <a data-url="http://example.com/2026/04/28/twt-simulation-design-handbook/" data-id="cuidAKu9gqPXKnUkM_b2uxW7F" data-title="螺旋线行波管仿真设计手册" class="article-share-link"><span class="fa fa-share">Share</span></a>
+      <a data-url="https://zhoujiaxiang-time.github.io/zjx/2026/04/28/twt-simulation-design-handbook/" data-id="cuiddQKWvSQSrBtEkQF6Xj7xl" data-title="螺旋线行波管仿真设计手册" class="article-share-link"><span class="fa fa-share">分享</span></a>
       
       
       
-  <ul class="article-tag-list" itemprop="keywords"><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/TWT/" rel="tag">TWT</a></li><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/%E4%BB%BF%E7%9C%9F%E8%AE%BE%E8%AE%A1/" rel="tag">仿真设计</a></li><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/%E8%A1%8C%E6%B3%A2%E7%AE%A1/" rel="tag">行波管</a></li></ul>
+  <ul class="article-tag-list" itemprop="keywords"><li class="article-tag-list-item"><a class="article-tag-list-link" href="/zjx/tags/TWT/" rel="tag">TWT</a></li><li class="article-tag-list-item"><a class="article-tag-list-link" href="/zjx/tags/%E4%BB%BF%E7%9C%9F%E8%AE%BE%E8%AE%A1/" rel="tag">仿真设计</a></li><li class="article-tag-list-item"><a class="article-tag-list-link" href="/zjx/tags/%E8%A1%8C%E6%B3%A2%E7%AE%A1/" rel="tag">行波管</a></li></ul>
 
     </footer>
   </div>
@@ -365,9 +365,9 @@
   
     
   <div class="widget-wrap">
-    <h3 class="widget-title">Categories</h3>
+    <h3 class="widget-title">分类</h3>
     <div class="widget">
-      <ul class="category-list"><li class="category-list-item"><a class="category-list-link" href="/categories/%E6%8A%80%E6%9C%AF%E6%96%87%E6%A1%A3/">技术文档</a></li></ul>
+      <ul class="category-list"><li class="category-list-item"><a class="category-list-link" href="/zjx/categories/%E6%8A%80%E6%9C%AF%E6%96%87%E6%A1%A3/">技术文档</a></li></ul>
     </div>
   </div>
 
@@ -375,9 +375,9 @@
   
     
   <div class="widget-wrap">
-    <h3 class="widget-title">Tags</h3>
+    <h3 class="widget-title">标签</h3>
     <div class="widget">
-      <ul class="tag-list" itemprop="keywords"><li class="tag-list-item"><a class="tag-list-link" href="/tags/TWT/" rel="tag">TWT</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/%E4%BB%BF%E7%9C%9F%E8%AE%BE%E8%AE%A1/" rel="tag">仿真设计</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/%E8%A1%8C%E6%B3%A2%E7%AE%A1/" rel="tag">行波管</a></li></ul>
+      <ul class="tag-list" itemprop="keywords"><li class="tag-list-item"><a class="tag-list-link" href="/zjx/tags/TWT/" rel="tag">TWT</a></li><li class="tag-list-item"><a class="tag-list-link" href="/zjx/tags/%E4%BB%BF%E7%9C%9F%E8%AE%BE%E8%AE%A1/" rel="tag">仿真设计</a></li><li class="tag-list-item"><a class="tag-list-link" href="/zjx/tags/%E8%A1%8C%E6%B3%A2%E7%AE%A1/" rel="tag">行波管</a></li></ul>
     </div>
   </div>
 
@@ -385,18 +385,18 @@
   
     
   <div class="widget-wrap">
-    <h3 class="widget-title">Tag Cloud</h3>
+    <h3 class="widget-title">标签云</h3>
     <div class="widget tagcloud">
-      <a href="/tags/TWT/" style="font-size: 10px;">TWT</a> <a href="/tags/%E4%BB%BF%E7%9C%9F%E8%AE%BE%E8%AE%A1/" style="font-size: 10px;">仿真设计</a> <a href="/tags/%E8%A1%8C%E6%B3%A2%E7%AE%A1/" style="font-size: 10px;">行波管</a>
+      <a href="/zjx/tags/TWT/" style="font-size: 10px;">TWT</a> <a href="/zjx/tags/%E4%BB%BF%E7%9C%9F%E8%AE%BE%E8%AE%A1/" style="font-size: 10px;">仿真设计</a> <a href="/zjx/tags/%E8%A1%8C%E6%B3%A2%E7%AE%A1/" style="font-size: 10px;">行波管</a>
     </div>
   </div>
 
   
     
   <div class="widget-wrap">
-    <h3 class="widget-title">Archives</h3>
+    <h3 class="widget-title">归档</h3>
     <div class="widget">
-      <ul class="archive-list"><li class="archive-list-item"><a class="archive-list-link" href="/archives/2026/04/">April 2026</a></li></ul>
+      <ul class="archive-list"><li class="archive-list-item"><a class="archive-list-link" href="/zjx/archives/2026/04/">四月 2026</a></li></ul>
     </div>
   </div>
 
@@ -404,12 +404,12 @@
   
     
   <div class="widget-wrap">
-    <h3 class="widget-title">Recent Posts</h3>
+    <h3 class="widget-title">最新文章</h3>
     <div class="widget">
       <ul>
         
           <li>
-            <a href="/2026/04/28/twt-simulation-design-handbook/">螺旋线行波管仿真设计手册</a>
+            <a href="/zjx/2026/04/28/twt-simulation-design-handbook/">螺旋线行波管仿真设计手册</a>
           </li>
         
       </ul>
@@ -425,7 +425,7 @@
   <div class="outer">
     <div id="footer-info" class="inner">
       
-      &copy; 2026 John Doe<br>
+      &copy; 2026 周佳祥<br>
       Powered by <a href="https://hexo.io/" target="_blank">Hexo</a>
     </div>
   </div>
@@ -434,25 +434,25 @@
     </div>
     <nav id="mobile-nav">
   
-    <a href="/" class="mobile-nav-link">Home</a>
+    <a href="/zjx/" class="mobile-nav-link">Home</a>
   
-    <a href="/archives" class="mobile-nav-link">Archives</a>
+    <a href="/zjx/archives" class="mobile-nav-link">Archives</a>
   
 </nav>
     
 
 
-<script src="/js/jquery-3.6.4.min.js"></script>
+<script src="/zjx/js/jquery-3.6.4.min.js"></script>
 
 
 
   
-<script src="/fancybox/jquery.fancybox.min.js"></script>
+<script src="/zjx/fancybox/jquery.fancybox.min.js"></script>
 
 
 
 
-<script src="/js/script.js"></script>
+<script src="/zjx/js/script.js"></script>
 
 
 
