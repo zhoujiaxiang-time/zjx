@@ -124,6 +124,25 @@ a:hover {
   background: rgba(245, 249, 246, 0.92);
 }
 
+#footer {
+  background: transparent !important;
+  box-shadow: none;
+}
+
+#footer::before {
+  display: none !important;
+}
+
+#footer > *,
+#footer a {
+  color: rgba(29, 42, 49, 0.88) !important;
+  text-shadow: 0 1px 8px rgba(255, 255, 255, 0.78);
+}
+
+#footer a:hover {
+  color: var(--zjx-accent) !important;
+}
+
 @media (max-width: 768px) {
   #page-header.index-bg {
     height: 56vh;
