@@ -1,0 +1,443 @@
+<!DOCTYPE html><html lang="zh-CN" data-theme="light"><head><meta charset="UTF-8"><meta http-equiv="X-UA-Compatible" content="IE=edge"><meta name="viewport" content="width=device-width, initial-scale=1.0,viewport-fit=cover"><title>PyTorch学习 1：张量Tensor、计算图、前向传播、反向传播、梯度计算与更新 | 小渣渣Time的Blog</title><meta name="author" content="Jiaxiang Zhou"><meta name="copyright" content="Jiaxiang Zhou"><meta name="format-detection" content="telephone=no"><meta name="theme-color" content="#ffffff"><meta name="description" content="PyTorch Tensor 基础、计算图、前向传播、反向传播、梯度计算与参数更新的入门整理。">
+<meta property="og:type" content="article">
+<meta property="og:title" content="PyTorch学习 1：张量Tensor、计算图、前向传播、反向传播、梯度计算与更新">
+<meta property="og:url" content="https://zjxtime.top/2026/05/16/pytorch-tensor-autograd/">
+<meta property="og:site_name" content="小渣渣Time的Blog">
+<meta property="og:description" content="PyTorch Tensor 基础、计算图、前向传播、反向传播、梯度计算与参数更新的入门整理。">
+<meta property="og:locale" content="zh_CN">
+<meta property="og:image" content="https://zjxtime.top/images/pytorch-tensor-autograd/DAG_example-1778905120451-2.png">
+<meta property="article:published_time" content="2026-05-16T05:45:00.000Z">
+<meta property="article:modified_time" content="2026-05-16T05:40:57.868Z">
+<meta property="article:author" content="Jiaxiang Zhou">
+<meta property="article:tag" content="PyTorch">
+<meta property="article:tag" content="Tensor">
+<meta property="article:tag" content="反向传播">
+<meta property="article:tag" content="自动求导">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:image" content="https://zjxtime.top/images/pytorch-tensor-autograd/DAG_example-1778905120451-2.png"><script type="application/ld+json">{
+  "@context": "https://schema.org",
+  "@type": "BlogPosting",
+  "headline": "PyTorch学习 1：张量Tensor、计算图、前向传播、反向传播、梯度计算与更新",
+  "url": "https://zjxtime.top/2026/05/16/pytorch-tensor-autograd/",
+  "image": "https://zjxtime.top/images/pytorch-tensor-autograd/DAG_example-1778905120451-2.png",
+  "datePublished": "2026-05-16T05:45:00.000Z",
+  "dateModified": "2026-05-16T05:40:57.868Z",
+  "author": [
+    {
+      "@type": "Person",
+      "name": "Jiaxiang Zhou",
+      "url": "https://zjxtime.top"
+    }
+  ]
+}</script><link rel="shortcut icon" href="/"><link rel="canonical" href="https://zjxtime.top/2026/05/16/pytorch-tensor-autograd/"><link rel="preconnect" href="//cdn.jsdelivr.net"/><link rel="stylesheet" href="/css/index.css?v=5.5.4"><link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@7.1.0/css/all.min.css"><script>
+    (() => {
+      
+    const saveToLocal = {
+      set: (key, value, ttl) => {
+        if (!ttl) return
+        const expiry = Date.now() + ttl * 86400000
+        localStorage.setItem(key, JSON.stringify({ value, expiry }))
+      },
+      get: key => {
+        const itemStr = localStorage.getItem(key)
+        if (!itemStr) return undefined
+        const { value, expiry } = JSON.parse(itemStr)
+        if (Date.now() > expiry) {
+          localStorage.removeItem(key)
+          return undefined
+        }
+        return value
+      }
+    }
+
+    window.btf = {
+      saveToLocal,
+      getScript: (url, attr = {}) => new Promise((resolve, reject) => {
+        const script = document.createElement('script')
+        script.src = url
+        script.async = true
+        Object.entries(attr).forEach(([key, val]) => script.setAttribute(key, val))
+        script.onload = script.onreadystatechange = () => {
+          if (!script.readyState || /loaded|complete/.test(script.readyState)) resolve()
+        }
+        script.onerror = reject
+        document.head.appendChild(script)
+      }),
+      getCSS: (url, id) => new Promise((resolve, reject) => {
+        const link = document.createElement('link')
+        link.rel = 'stylesheet'
+        link.href = url
+        if (id) link.id = id
+        link.onload = link.onreadystatechange = () => {
+          if (!link.readyState || /loaded|complete/.test(link.readyState)) resolve()
+        }
+        link.onerror = reject
+        document.head.appendChild(link)
+      }),
+      addGlobalFn: (key, fn, name = false, parent = window) => {
+        if (!false && key.startsWith('pjax')) return
+        const globalFn = parent.globalFn || {}
+        globalFn[key] = globalFn[key] || {}
+        globalFn[key][name || Object.keys(globalFn[key]).length] = fn
+        parent.globalFn = globalFn
+      }
+    }
+  
+      
+      const activateDarkMode = () => {
+        document.documentElement.setAttribute('data-theme', 'dark')
+        if (document.querySelector('meta[name="theme-color"]') !== null) {
+          document.querySelector('meta[name="theme-color"]').setAttribute('content', '#0d0d0d')
+        }
+      }
+      const activateLightMode = () => {
+        document.documentElement.setAttribute('data-theme', 'light')
+        if (document.querySelector('meta[name="theme-color"]') !== null) {
+          document.querySelector('meta[name="theme-color"]').setAttribute('content', '#ffffff')
+        }
+      }
+
+      btf.activateDarkMode = activateDarkMode
+      btf.activateLightMode = activateLightMode
+
+      const theme = saveToLocal.get('theme')
+    
+          theme === 'dark' ? activateDarkMode() : theme === 'light' ? activateLightMode() : null
+        
+      
+      const asideStatus = saveToLocal.get('aside-status')
+      if (asideStatus !== undefined) {
+        document.documentElement.classList.toggle('hide-aside', asideStatus === 'hide')
+      }
+    
+      
+    const detectApple = () => {
+      if (/iPad|iPhone|iPod|Macintosh/.test(navigator.userAgent)) {
+        document.documentElement.classList.add('apple')
+      }
+    }
+    detectApple()
+  
+    })()
+  </script><script>const GLOBAL_CONFIG = {
+  root: '/',
+  algolia: undefined,
+  localSearch: undefined,
+  translate: undefined,
+  highlight: {"plugin":"highlight.js","highlightCopy":true,"highlightLang":true,"highlightHeightLimit":false,"highlightFullpage":false,"highlightMacStyle":false},
+  copy: {
+    success: '复制成功',
+    error: '复制失败',
+    noSupport: '浏览器不支持'
+  },
+  relativeDate: {
+    homepage: false,
+    post: false
+  },
+  runtime: '',
+  dateSuffix: {
+    just: '刚刚',
+    min: '分钟前',
+    hour: '小时前',
+    day: '天前',
+    month: '个月前'
+  },
+  copyright: {"limitCount":120,"languages":{"author":"作者: Jiaxiang Zhou","link":"链接: ","source":"来源: 小渣渣Time的Blog","info":"著作权归作者所有。商业转载请联系作者获得授权，非商业转载请注明出处。"}},
+  lightbox: 'null',
+  Snackbar: undefined,
+  infinitegrid: {
+    js: 'https://cdn.jsdelivr.net/npm/@egjs/infinitegrid@4.13.0/dist/infinitegrid.min.js',
+    buttonText: '加载更多'
+  },
+  isPhotoFigcaption: false,
+  islazyloadPlugin: false,
+  isAnchor: false,
+  percent: {
+    toc: true,
+    rightside: false,
+  },
+  autoDarkmode: false
+}</script><script id="config-diff">var GLOBAL_CONFIG_SITE = {
+  title: 'PyTorch学习 1：张量Tensor、计算图、前向传播、反向传播、梯度计算与更新',
+  isHighlightShrink: false,
+  isToc: true,
+  pageType: 'post'
+}</script><link rel="stylesheet" href="/css/zjxtime-butterfly.css"><meta name="generator" content="Hexo 8.1.1"><script>window.MathJax = {  tex: {    inlineMath: [['\\(', '\\)']],    displayMath: [['\\[', '\\]']],    processEscapes: true  },  options: { skipHtmlTags: ['script', 'noscript', 'style', 'textarea', 'pre', 'code'] }};</script><script defer src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-chtml.js"></script></head><body><div class="bg-animation" id="web_bg" style="background-image: url(/images/background.jpg);"></div><div id="sidebar"><div id="menu-mask"></div><div id="sidebar-menus"><div class="avatar-img text-center"><img src="/images/touxiang.jpg" onerror="this.onerror=null;this.src='/img/friend_404.gif'" alt="avatar"/></div><div class="site-data text-center"><a href="/archives/"><div class="headline">文章</div><div class="length-num">2</div></a><a href="/tags/"><div class="headline">标签</div><div class="length-num">7</div></a><a href="/categories/"><div class="headline">分类</div><div class="length-num">2</div></a></div><div class="menus_items"><div class="menus_item"><a class="site-page" href="/"><i class="fa-fw fas fa-home"></i><span> 首页</span></a></div><div class="menus_item"><a class="site-page" href="/archives/"><i class="fa-fw fas fa-box-archive"></i><span> 归档</span></a></div><div class="menus_item"><a class="site-page" href="/categories/"><i class="fa-fw fas fa-folder-open"></i><span> 分类</span></a></div><div class="menus_item"><a class="site-page" href="/tags/"><i class="fa-fw fas fa-tags"></i><span> 标签</span></a></div></div></div></div><div class="post" id="body-wrap"><header class="post-bg fixed" id="page-header" style="background-image: url(/images/pytorch-tensor-autograd/DAG_example-1778905120451-2.png);"><nav id="nav"><span id="blog-info"><a class="nav-site-title" href="/"><span class="site-name">小渣渣Time的Blog</span></a><a class="nav-page-title" href="/"><span class="site-name">PyTorch学习 1：张量Tensor、计算图、前向传播、反向传播、梯度计算与更新</span><span class="site-name"><i class="fa-solid fa-circle-arrow-left"></i><span>  返回首页</span></span></a></span><div id="menus"><div class="menus_items"><div class="menus_item"><a class="site-page" href="/"><i class="fa-fw fas fa-home"></i><span> 首页</span></a></div><div class="menus_item"><a class="site-page" href="/archives/"><i class="fa-fw fas fa-box-archive"></i><span> 归档</span></a></div><div class="menus_item"><a class="site-page" href="/categories/"><i class="fa-fw fas fa-folder-open"></i><span> 分类</span></a></div><div class="menus_item"><a class="site-page" href="/tags/"><i class="fa-fw fas fa-tags"></i><span> 标签</span></a></div></div><div id="toggle-menu"><span class="site-page"><i class="fas fa-bars fa-fw"></i></span></div></div></nav><div id="post-info"><h1 class="post-title">PyTorch学习 1：张量Tensor、计算图、前向传播、反向传播、梯度计算与更新</h1><div id="post-meta"><div class="meta-firstline"><span class="post-meta-date"><i class="far fa-calendar-alt fa-fw post-meta-icon"></i><span class="post-meta-label">发表于</span><time class="post-meta-date-created" datetime="2026-05-16T05:45:00.000Z" title="发表于 2026-05-16 13:45:00">2026-05-16</time><span class="post-meta-separator">|</span><i class="fas fa-history fa-fw post-meta-icon"></i><span class="post-meta-label">更新于</span><time class="post-meta-date-updated" datetime="2026-05-16T05:40:57.868Z" title="更新于 2026-05-16 13:40:57">2026-05-16</time></span><span class="post-meta-categories"><span class="post-meta-separator">|</span><i class="fas fa-inbox fa-fw post-meta-icon"></i><a class="post-meta-categories" href="/categories/%E6%B7%B1%E5%BA%A6%E5%AD%A6%E4%B9%A0/">深度学习</a></span></div><div class="meta-secondline"></div></div></div></header><main class="layout" id="content-inner"><div id="post"><article class="container post-content" id="article-container"><h1 id="PyTorch学习-1：张量Tensor、计算图、前向传播、反向传播、梯度计算与更新"><a href="#PyTorch学习-1：张量Tensor、计算图、前向传播、反向传播、梯度计算与更新" class="headerlink" title="PyTorch学习 1：张量Tensor、计算图、前向传播、反向传播、梯度计算与更新"></a>PyTorch学习 1：张量Tensor、计算图、前向传播、反向传播、梯度计算与更新</h1><h2 id="Tensor基础概念"><a href="#Tensor基础概念" class="headerlink" title="Tensor基础概念"></a>Tensor基础概念</h2><p>张量（Tensor）是一个多维数组，可以是标量（零阶张量）、向量（一阶张量）、矩阵（二阶张量）或更高维度的数据结构（N阶张量）。</p>
+<h2 id="Tensor底层模型"><a href="#Tensor底层模型" class="headerlink" title="Tensor底层模型"></a>Tensor底层模型</h2><p>Tensor的底层模型或结构主要可以从<strong>数据存储机制</strong>和<strong>计算引擎结构</strong>两个方面来理解。</p>
+<h3 id="1、底层存储模型：元数据与Storage存储区"><a href="#1、底层存储模型：元数据与Storage存储区" class="headerlink" title="1、底层存储模型：元数据与Storage存储区"></a>1、底层存储模型：元数据与Storage存储区</h3><p>Tensor的底层由两部分组成：</p>
+<ul>
+<li><p><strong>元数据区（Metadata&#x2F;View）</strong>：描述Tensor的信息，包括形状（size&#x2F;shape）、步长（stride）、数据类型（dtype）、设备（CPU&#x2F;GPU）、存储偏移量（storage_offset）等。</p>
+</li>
+<li><p><strong>存储区（Storage）</strong>：实际存放Tensor数据的区域，通常是一个线性的一维数据。不同的Tensor（如经过view、transpose操作）可以共享同一个Storage。</p>
+<p>在pytorch中可使用tensor.storage()访问存储的数据</p>
+<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">&gt;&gt;&gt; </span><span class="keyword">import</span> torch</span><br><span class="line"><span class="meta">&gt;&gt;&gt; </span>data = torch.arange(<span class="number">9</span>)</span><br><span class="line"><span class="meta">&gt;&gt;&gt; </span><span class="built_in">print</span>(data.storage().dtype)</span><br><span class="line">&lt;stdin&gt;:<span class="number">1</span>: UserWarning: TypedStorage <span class="keyword">is</span> deprecated. It will be removed <span class="keyword">in</span> the future <span class="keyword">and</span> UntypedStorage will be the only storage <span class="keyword">class</span>. This should only matter to you <span class="keyword">if</span> you are using storages directly.  To access UntypedStorage directly, use tensor.untyped_storage() instead of tensor.storage() torch.int64                                           &gt;&gt;&gt; <span class="built_in">print</span>(data.storage().device)</span><br><span class="line">cpu</span><br><span class="line"><span class="meta">&gt;&gt;&gt; </span><span class="built_in">print</span>(data.storage().data_ptr())</span><br><span class="line"><span class="number">2823601262912</span></span><br></pre></td></tr></table></figure></li>
+</ul>
+<h3 id="2、底层数据结构：DAG计算图"><a href="#2、底层数据结构：DAG计算图" class="headerlink" title="2、底层数据结构：DAG计算图"></a>2、底层数据结构：DAG计算图</h3><p>Tensor不仅是数据，还是深度学习计算图（Directed Acyclic Graph，DAG，也叫有向无环图）中的节点。</p>
+<ul>
+<li>节点（Node）：每个Tensor对应计算图中的一个节点</li>
+<li>操作（Operator）：矩阵乘法、加法等运算对应图中的操作节点。</li>
+<li>反向传播：框架依据DAG记录的运算历史，从损失（loss）出发，反向遍历计算梯度（Backward）。</li>
+</ul>
+<p><img src="/images/pytorch-tensor-autograd/DAG_example-1778905120451-2.png"></p>
+<p>图中的模型是一个 单个神经元&#x2F;线性层+ReLU激活+损失函数的计算图，是深度学习中最基本的前向传播和反向传播DAG。<br>图中的模型可以写成：</p>
+<div class="math-display">\[z=w_1​x_1​+w_2​x_2​+b\]</div>
+
+<p>然后经过激活函数：</p>
+<div class="math-display">\[a={ReLU}(z)\]</div>
+
+<p>把激活后的结果作为预测值：</p>
+<div class="math-display">\[\hat{y}=a\]</div>
+
+<p>最后和真实目标值<span class="math-inline">\(y\)</span>计算损失：</p>
+<div class="math-display">\[L=Loss(\hat{y}, y)\]</div>
+
+<p>所以图中描述的是：输入<span class="math-inline">\(x_1,x_2\)</span>经过权重<span class="math-inline">\(w_1,w_2\)</span>和偏置项<span class="math-inline">\(b\)</span>得到预测值<span class="math-inline">\(\hat{y}\)</span>，再与真实值<span class="math-inline">\(y\)</span>比较，得到损失<span class="math-inline">\(L\)</span>。</p>
+<h3 id="3、前向传播"><a href="#3、前向传播" class="headerlink" title="3、前向传播"></a>3、前向传播</h3><p>图中的<strong>实线箭头</strong>表示前向传播，也就是数据流。<br>第一步，输入和权重相乘：</p>
+<div class="math-display">\[m_1=x_1w_1\\
+m_2=x_2w_2\]</div>
+
+<p>这里<span class="math-inline">\(m_1\)</span>和<span class="math-inline">\(m_2\)</span>是中间计算结果。<br>第二步，把两个乘积求和：</p>
+<div class="math-display">\[s=m_1+m_2\]</div>
+
+<p>第三步，加上偏置：</p>
+<div class="math-display">\[z=s+b\]</div>
+
+<p>也就是：</p>
+<div class="math-display">\[z=w_1x_1+w_2x_2+b\]</div>
+
+<p>第四步，通过<span class="math-inline">\(ReLU\)</span>激活函数：</p>
+<div class="math-display">\[a=ReLU(z)=max(0,z)\]</div>
+
+<p>也就是：</p>
+<ul>
+<li>如果<span class="math-inline">\(z&gt;0\)</span>，那么<span class="math-inline">\(a=z\)</span></li>
+<li>如果<span class="math-inline">\(z\le0\)</span>，那么<span class="math-inline">\(a=0\)</span></li>
+</ul>
+<p>第五步，得到预测输出：</p>
+<div class="math-display">\[\hat{y}=a\]</div>
+
+<p>第六步，和真实值<span class="math-inline">\(y\)</span>计算损失：</p>
+<div class="math-display">\[L=Loss(\hat{y},y)\]</div>
+
+<p>如果用均方误差举例：</p>
+<div class="math-display">\[L=\frac{(\hat{y}-y)^2}{2}\]</div>
+
+<h3 id="4、反向传播"><a href="#4、反向传播" class="headerlink" title="4、反向传播"></a>4、反向传播</h3><p>图中的<strong>虚线剪头</strong>表示梯度流，即反向传播，也就是从损失<span class="math-inline">\(L\)</span>开始，计算每个参数对损失的影响。<br>图中真正想更新的参数是：</p>
+<div class="math-display">\[w_1,w_2,b\]</div>
+
+<p>所以需要算：</p>
+<div class="math-display">\[\frac{\partial L}{\partial w_1}, \quad \frac{\partial L}{\partial w_2}, \quad \frac{\partial L}{\partial b}\]</div>
+
+<p>这些梯度表示：如果稍微改变某个参数，损失<span class="math-inline">\(L\)</span>会怎样变化。</p>
+<h3 id="5、梯度如何通过图传播"><a href="#5、梯度如何通过图传播" class="headerlink" title="5、梯度如何通过图传播"></a>5、梯度如何通过图传播</h3><p>反向传播的核心是<strong>链式法则</strong>。<br>从损失函数开始：</p>
+<div class="math-display">\[\frac{\partial L}{\partial \hat{y}} = \hat{y} - y\]</div>
+
+<p>由于：</p>
+<div class="math-display">\[\hat{y}=a\]</div>
+
+<p>所以：</p>
+<div class="math-display">\[\frac{\partial L}{\partial a}=\frac{\partial L}{\partial \hat{y}}\]</div>
+
+<p>又因为：</p>
+<div class="math-display">\[a=ReLU(z)\]</div>
+
+<p>所以：</p>
+<div class="math-display">\[\frac{\partial a}{\partial z} = 
+\begin{cases} 
+    1, &amp; z &gt; 0 \\ 
+    0, &amp; z \le 0 
+\end{cases}\]</div>
+
+<p>因此：</p>
+<div class="math-display">\[\frac{\partial L}{\partial z} = \frac{\partial L}{\partial a} \cdot \frac{\partial a}{\partial z}\]</div>
+
+<p>这一步非常关键，因为<span class="math-inline">\(ReLU\)</span>可能会把梯度截断。</p>
+<h3 id="6、参数梯度的计算"><a href="#6、参数梯度的计算" class="headerlink" title="6、参数梯度的计算"></a>6、参数梯度的计算</h3><p>因为：</p>
+<div class="math-display">\[z=w_1x_1+w_2x_2+b\]</div>
+
+<p>所以：</p>
+<div class="math-display">\[\begin{align*}
+    \frac{\partial z}{\partial w_1} &amp;= x_1 \\
+    \frac{\partial z}{\partial w_2} &amp;= x_2 \\
+    \frac{\partial z}{\partial b}   &amp;= 1
+\end{align*}\]</div>
+
+<p>根据链式法则：</p>
+<div class="math-display">\[\begin{alignat*}{2}
+    \frac{\partial L}{\partial w_1} &amp;= \frac{\partial L}{\partial z} \cdot \frac{\partial z}{\partial w_1} &amp;&amp;= \frac{\partial L}{\partial z} \cdot x_1 \\
+    \frac{\partial L}{\partial w_2} &amp;= \frac{\partial L}{\partial z} \cdot \frac{\partial z}{\partial w_2} &amp;&amp;= \frac{\partial L}{\partial z} \cdot x_2 \\
+    \frac{\partial L}{\partial b}   &amp;= \frac{\partial L}{\partial z} \cdot 1                       &amp;&amp;= \frac{\partial L}{\partial z}
+\end{alignat*}\]</div>
+
+<p>这就是神经网络中参数更新的基础。</p>
+<h3 id="7、具体数值示例"><a href="#7、具体数值示例" class="headerlink" title="7、具体数值示例"></a>7、具体数值示例</h3><p>假设：</p>
+<div class="math-display">\[x_1=2,x_2=3\\
+w_1=0.5,w_2=-1,b=1\]</div>
+
+<p>真实值：</p>
+<div class="math-display">\[y=1\]</div>
+
+<h4 id="前向传播"><a href="#前向传播" class="headerlink" title="前向传播"></a>前向传播</h4><p>先算乘法节点：</p>
+<div class="math-display">\[\begin{align*}
+    m_1 &amp;= x_1 w_1 = 2 \times 0.5 = 1 \\
+    m_2 &amp;= x_2 w_2 = 3 \times (-1) = -3
+\end{align*}\]</div>
+
+<p>求和：</p>
+<div class="math-display">\[s=m_1+m_2=1+(-3)=-2\]</div>
+
+<p>加偏置：</p>
+<div class="math-display">\[z=s+b=-2+1=-1\]</div>
+
+<p>经过<span class="math-inline">\(ReLU\)</span>：</p>
+<div class="math-display">\[a=ReLU(-1)=0\]</div>
+
+<p>所以预测值：</p>
+<div class="math-display">\[\hat{y}=0\]</div>
+
+<p>如果损失函数是：</p>
+<div class="math-display">\[L=\frac{(\hat{y}-y)^2}{2}\]</div>
+
+<p>那么：</p>
+<div class="math-display">\[L=\frac{1}{2}(0-1)^2=0.5\]</div>
+
+<h4 id="反向传播"><a href="#反向传播" class="headerlink" title="反向传播"></a>反向传播</h4><p>上面例子中，</p>
+<div class="math-display">\[z=-1\]</div>
+
+<p>所以：</p>
+<div class="math-display">\[a=ReLU(z)=0\]</div>
+
+<p>并且：</p>
+<div class="math-display">\[\frac{\partial a}{\partial z}=0\]</div>
+
+<p>因此：</p>
+<div class="math-display">\[\frac{\partial L}{\partial z}=0\]</div>
+
+<p>进一步得到：</p>
+<div class="math-display">\[\begin{align*}
+    \frac{\partial L}{\partial w_1} &amp;= 0 \\
+    \frac{\partial L}{\partial w_2} &amp;= 0 \\
+    \frac{\partial L}{\partial b}   &amp;= 0
+\end{align*}\]</div>
+
+<p>这说明在这个具体数值下，<span class="math-inline">\(ReLU\)</span>处于关闭状态，梯度传不过去，参数暂时无法通过这个样本更新。这也是<span class="math-inline">\(ReLU\)</span>的一个典型特征。</p>
+<h4 id="换一个-z-0-的例子"><a href="#换一个-z-0-的例子" class="headerlink" title="换一个\(z&gt;0\)的例子"></a>换一个<span class="math-inline">\(z&gt;0\)</span>的例子</h4><p>假设：</p>
+<div class="math-display">\[x_1=2,x_2=3\\
+w_1=1,w_2=1,b=0\]</div>
+
+<p>真实值：</p>
+<div class="math-display">\[y=10\]</div>
+
+<p>前向传播：</p>
+<div class="math-display">\[\begin{gather*}
+    z = 1 \times 2 + 1 \times 3 + 0 = 5 \\
+    a = \text{ReLU}(5) = 5 \\
+    \hat{y} = 5
+\end{gather*}\]</div>
+
+<p>损失：</p>
+<div class="math-display">\[L=\frac{1}{2}(5-10)^2=12.5\]</div>
+
+<p>反向传播：</p>
+<div class="math-display">\[\frac{\partial L}{\partial \hat{y}} = \hat{y} - y = 5 - 10 = -5\]</div>
+
+<p>因为<span class="math-inline">\(\hat{y}=a\)</span>，所以：</p>
+<div class="math-display">\[\frac{\partial L}{\partial a}=-5\]</div>
+
+<p>因为<span class="math-inline">\(z=5&gt;0\)</span>，所以：</p>
+<div class="math-display">\[\frac{\partial a}{\partial z}=1\]</div>
+
+<p>因此：</p>
+<div class="math-display">\[\frac{\partial L}{\partial z}=-5\]</div>
+
+<p>参数梯度：</p>
+<div class="math-display">\[\frac{\partial L}{\partial w_1} &amp;= -5 \times x_1 = -5 \times 2 = -10 \\
+    \frac{\partial L}{\partial w_2} &amp;= -5 \times x_2 = -5 \times 3 = -15\\\]</div>
+
+<div class="math-display">\[\frac{\partial L}{\partial b} = -5\]</div>
+
+<p>如果用学习率<span class="math-inline">\(\eta = 0.1\)</span>，梯度下降更新为：</p>
+<div class="math-display">\[\begin{align*}
+    w_1 &amp;\leftarrow w_1 - \eta \frac{\partial L}{\partial w_1} \\
+    w_1 &amp;\leftarrow 1 - 0.1(-10) = 2 \\
+    w_2 &amp;\leftarrow 1 - 0.1(-15) = 2.5 \\
+    b   &amp;\leftarrow 0 - 0.1(-5) = 0.5
+\end{align*}\]</div>
+
+<p>因为预测值5小于真实值10，所以梯度更新会让参数变大，从而提高之后的预测值。</p>
+</article><div class="post-copyright"><div class="post-copyright__author"><span class="post-copyright-meta"><i class="fas fa-circle-user fa-fw"></i>文章作者: </span><span class="post-copyright-info"><a href="https://zjxtime.top">Jiaxiang Zhou</a></span></div><div class="post-copyright__type"><span class="post-copyright-meta"><i class="fas fa-square-arrow-up-right fa-fw"></i>文章链接: </span><span class="post-copyright-info"><a href="https://zjxtime.top/2026/05/16/pytorch-tensor-autograd/">https://zjxtime.top/2026/05/16/pytorch-tensor-autograd/</a></span></div><div class="post-copyright__notice"><span class="post-copyright-meta"><i class="fas fa-circle-exclamation fa-fw"></i>版权声明: </span><span class="post-copyright-info">本博客所有文章除特别声明外，均采用 <a href="https://creativecommons.org/licenses/by-nc-sa/4.0/" target="_blank">CC BY-NC-SA 4.0</a> 许可协议。转载请注明来源 <a href="https://zjxtime.top" target="_blank">小渣渣Time的Blog</a>！</span></div></div><div class="tag_share"><div class="post-meta__tag-list"><a class="post-meta__tags" href="/tags/PyTorch/">PyTorch</a><a class="post-meta__tags" href="/tags/Tensor/">Tensor</a><a class="post-meta__tags" href="/tags/%E8%87%AA%E5%8A%A8%E6%B1%82%E5%AF%BC/">自动求导</a><a class="post-meta__tags" href="/tags/%E5%8F%8D%E5%90%91%E4%BC%A0%E6%92%AD/">反向传播</a></div><div class="post-share"><div class="social-share" data-image="/images/pytorch-tensor-autograd/DAG_example-1778905120451-2.png" data-sites="facebook,x,wechat,weibo,qq"></div><link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/butterfly-extsrc@1.1.6/sharejs/dist/css/share.min.css" media="print" onload="this.media='all'"><script src="https://cdn.jsdelivr.net/npm/butterfly-extsrc@1.1.6/sharejs/dist/js/social-share.min.js" defer></script></div></div><nav class="pagination-post" id="pagination"><a class="pagination-related full-width no-desc" href="/2026/04/28/twt-simulation-design-handbook/" title="螺旋线行波管仿真设计手册"><img class="cover" src="/images/TWT.png" onerror="onerror=null;src='/img/404.jpg'" alt="cover of next post"><div class="info text-right"><div class="info-1"><div class="info-item-1">下一篇</div><div class="info-item-2">螺旋线行波管仿真设计手册</div></div></div></a></nav><hr class="custom-hr"/><div id="post-comment"><div class="comment-head"><div class="comment-headline"><i class="fas fa-comments fa-fw"></i><span> 评论</span></div></div><div class="comment-wrap"><div><div id="giscus-wrap"></div></div></div></div></div><div class="aside-content" id="aside-content"><div class="card-widget card-info text-center"><div class="avatar-img"><img src="/images/touxiang.jpg" onerror="this.onerror=null;this.src='/img/friend_404.gif'" alt="avatar"/></div><div class="author-info-name">Jiaxiang Zhou</div><div class="author-info-description">不期待，不假设，不强求</div><div class="site-data"><a href="/archives/"><div class="headline">文章</div><div class="length-num">2</div></a><a href="/tags/"><div class="headline">标签</div><div class="length-num">7</div></a><a href="/categories/"><div class="headline">分类</div><div class="length-num">2</div></a></div><a id="card-info-btn" href="https://zjxtime.top/"><i class="fas fa-house"></i><span>zjxtime.top</span></a><div class="card-info-social-icons"><a class="social-icon" href="https://github.com/zhoujiaxiang-time" target="_blank" title="GitHub"><i class="fab fa-github" style="color: #24292e;"></i></a></div></div><div class="card-widget card-announcement"><div class="item-headline"><i class="fas fa-bullhorn fa-shake"></i><span>公告</span></div><div class="announcement_content">记录仿真、工程设计和技术学习。</div></div><div class="sticky_layout"><div class="card-widget" id="card-toc"><div class="item-headline"><i class="fas fa-stream"></i><span>目录</span><span class="toc-percentage"></span></div><div class="toc-content"><ol class="toc"><li class="toc-item toc-level-1"><a class="toc-link" href="#PyTorch%E5%AD%A6%E4%B9%A0-1%EF%BC%9A%E5%BC%A0%E9%87%8FTensor%E3%80%81%E8%AE%A1%E7%AE%97%E5%9B%BE%E3%80%81%E5%89%8D%E5%90%91%E4%BC%A0%E6%92%AD%E3%80%81%E5%8F%8D%E5%90%91%E4%BC%A0%E6%92%AD%E3%80%81%E6%A2%AF%E5%BA%A6%E8%AE%A1%E7%AE%97%E4%B8%8E%E6%9B%B4%E6%96%B0"><span class="toc-number">1.</span> <span class="toc-text">PyTorch学习 1：张量Tensor、计算图、前向传播、反向传播、梯度计算与更新</span></a><ol class="toc-child"><li class="toc-item toc-level-2"><a class="toc-link" href="#Tensor%E5%9F%BA%E7%A1%80%E6%A6%82%E5%BF%B5"><span class="toc-number">1.1.</span> <span class="toc-text">Tensor基础概念</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#Tensor%E5%BA%95%E5%B1%82%E6%A8%A1%E5%9E%8B"><span class="toc-number">1.2.</span> <span class="toc-text">Tensor底层模型</span></a><ol class="toc-child"><li class="toc-item toc-level-3"><a class="toc-link" href="#1%E3%80%81%E5%BA%95%E5%B1%82%E5%AD%98%E5%82%A8%E6%A8%A1%E5%9E%8B%EF%BC%9A%E5%85%83%E6%95%B0%E6%8D%AE%E4%B8%8EStorage%E5%AD%98%E5%82%A8%E5%8C%BA"><span class="toc-number">1.2.1.</span> <span class="toc-text">1、底层存储模型：元数据与Storage存储区</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#2%E3%80%81%E5%BA%95%E5%B1%82%E6%95%B0%E6%8D%AE%E7%BB%93%E6%9E%84%EF%BC%9ADAG%E8%AE%A1%E7%AE%97%E5%9B%BE"><span class="toc-number">1.2.2.</span> <span class="toc-text">2、底层数据结构：DAG计算图</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#3%E3%80%81%E5%89%8D%E5%90%91%E4%BC%A0%E6%92%AD"><span class="toc-number">1.2.3.</span> <span class="toc-text">3、前向传播</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#4%E3%80%81%E5%8F%8D%E5%90%91%E4%BC%A0%E6%92%AD"><span class="toc-number">1.2.4.</span> <span class="toc-text">4、反向传播</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#5%E3%80%81%E6%A2%AF%E5%BA%A6%E5%A6%82%E4%BD%95%E9%80%9A%E8%BF%87%E5%9B%BE%E4%BC%A0%E6%92%AD"><span class="toc-number">1.2.5.</span> <span class="toc-text">5、梯度如何通过图传播</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#6%E3%80%81%E5%8F%82%E6%95%B0%E6%A2%AF%E5%BA%A6%E7%9A%84%E8%AE%A1%E7%AE%97"><span class="toc-number">1.2.6.</span> <span class="toc-text">6、参数梯度的计算</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#7%E3%80%81%E5%85%B7%E4%BD%93%E6%95%B0%E5%80%BC%E7%A4%BA%E4%BE%8B"><span class="toc-number">1.2.7.</span> <span class="toc-text">7、具体数值示例</span></a><ol class="toc-child"><li class="toc-item toc-level-4"><a class="toc-link" href="#%E5%89%8D%E5%90%91%E4%BC%A0%E6%92%AD"><span class="toc-number">1.2.7.1.</span> <span class="toc-text">前向传播</span></a></li><li class="toc-item toc-level-4"><a class="toc-link" href="#%E5%8F%8D%E5%90%91%E4%BC%A0%E6%92%AD"><span class="toc-number">1.2.7.2.</span> <span class="toc-text">反向传播</span></a></li><li class="toc-item toc-level-4"><a class="toc-link" href="#%E6%8D%A2%E4%B8%80%E4%B8%AA-z-0-%E7%9A%84%E4%BE%8B%E5%AD%90"><span class="toc-number">1.2.7.3.</span> <span class="toc-text">换一个\(z&gt;0\)的例子</span></a></li></ol></li></ol></li></ol></li></ol></div></div><div class="card-widget card-recent-post"><div class="item-headline"><i class="fas fa-history"></i><span>最新文章</span></div><div class="aside-list"><div class="aside-list-item"><a class="thumbnail" href="/2026/05/16/pytorch-tensor-autograd/" title="PyTorch学习 1：张量Tensor、计算图、前向传播、反向传播、梯度计算与更新"><img src="/images/pytorch-tensor-autograd/DAG_example-1778905120451-2.png" onerror="this.onerror=null;this.src='/img/404.jpg'" alt="PyTorch学习 1：张量Tensor、计算图、前向传播、反向传播、梯度计算与更新"/></a><div class="content"><a class="title" href="/2026/05/16/pytorch-tensor-autograd/" title="PyTorch学习 1：张量Tensor、计算图、前向传播、反向传播、梯度计算与更新">PyTorch学习 1：张量Tensor、计算图、前向传播、反向传播、梯度计算与更新</a><time datetime="2026-05-16T05:45:00.000Z" title="发表于 2026-05-16 13:45:00">2026-05-16</time></div></div><div class="aside-list-item"><a class="thumbnail" href="/2026/04/28/twt-simulation-design-handbook/" title="螺旋线行波管仿真设计手册"><img src="/images/TWT.png" onerror="this.onerror=null;this.src='/img/404.jpg'" alt="螺旋线行波管仿真设计手册"/></a><div class="content"><a class="title" href="/2026/04/28/twt-simulation-design-handbook/" title="螺旋线行波管仿真设计手册">螺旋线行波管仿真设计手册</a><time datetime="2026-04-28T10:20:00.000Z" title="发表于 2026-04-28 18:20:00">2026-04-28</time></div></div></div></div></div></div></main><footer id="footer"><div class="footer-other"><div class="footer-copyright"><span class="copyright">&copy;&nbsp;2026 By Jiaxiang Zhou</span><span class="framework-info"><span>框架 </span><a target="_blank" rel="noopener" href="https://hexo.io">Hexo 8.1.1</a><span class="footer-separator">|</span><span>主题 </span><a target="_blank" rel="noopener" href="https://github.com/jerryc127/hexo-theme-butterfly">Butterfly 5.5.4</a></span></div><div class="footer_custom_text">文章作者：Jiaxiang Zhou&nbsp;&nbsp;|&nbsp;&nbsp;本站文章如未特别声明，均采用 CC BY-NC-SA 4.0 协议。</div></div></footer></div><div id="rightside"><div id="rightside-config-hide"><button id="readmode" type="button" title="阅读模式"><i class="fas fa-book-open"></i></button><button id="darkmode" type="button" title="日间和夜间模式切换"><i class="fas fa-adjust"></i></button><button id="hide-aside-btn" type="button" title="单栏和双栏切换"><i class="fas fa-arrows-alt-h"></i></button></div><div id="rightside-config-show"><button id="rightside-config" type="button" title="设置"><i class="fas fa-cog fa-spin"></i></button><button class="close" id="mobile-toc-button" type="button" title="目录"><i class="fas fa-list-ul"></i></button><a id="to_comment" href="#post-comment" title="前往评论"><i class="fas fa-comments"></i></a><button id="go-up" type="button" title="回到顶部"><span class="scroll-percent"></span><i class="fas fa-arrow-up"></i></button></div></div><div><script src="/js/utils.js?v=5.5.4"></script><script src="/js/main.js?v=5.5.4"></script><div class="js-pjax"><script>(() => {
+  const isShuoshuo = GLOBAL_CONFIG_SITE.pageType === 'shuoshuo'
+  const option = {"data-category":"Announcements","data-mapping":"pathname","data-lang":"zh-CN"}
+
+  const getGiscusTheme = theme => theme === 'dark' ? 'dark' : 'light'
+
+  const createScriptElement = config => {
+    const ele = document.createElement('script')
+    Object.entries(config).forEach(([key, value]) => {
+      ele.setAttribute(key, value)
+    })
+    return ele
+  }
+
+  const loadGiscus = (el = document, key) => {
+    const mappingConfig = isShuoshuo
+      ? { 'data-mapping': 'specific', 'data-term': key }
+      : { 'data-mapping': (option && option['data-mapping']) || 'pathname' }
+
+    const giscusConfig = {
+      src: 'https://giscus.app/client.js',
+      'data-repo': 'zhoujiaxiang-time/zjx',
+      'data-repo-id': 'R_kgDOSOznHA',
+      'data-category-id': 'DIC_kwDOSOznHM4C8CqT',
+      'data-theme': getGiscusTheme(document.documentElement.getAttribute('data-theme')),
+      'data-reactions-enabled': '1',
+      crossorigin: 'anonymous',
+      async: true,
+      ...option,
+      ...mappingConfig
+    }
+
+    const scriptElement = createScriptElement(giscusConfig)
+
+    el.querySelector('#giscus-wrap').appendChild(scriptElement)
+
+    if (isShuoshuo) {
+      window.shuoshuoComment.destroyGiscus = () => {
+        if (el.children.length) {
+          el.innerHTML = ''
+          el.classList.add('no-comment')
+        }
+      }
+    }
+  }
+
+  const changeGiscusTheme = theme => {
+    const iframe = document.querySelector('#giscus-wrap iframe')
+    if (iframe) {
+      const message = {
+        giscus: {
+          setConfig: {
+            theme: getGiscusTheme(theme)
+          }
+        }
+      }
+      iframe.contentWindow.postMessage(message, 'https://giscus.app')
+    }
+  }
+
+  btf.addGlobalFn('themeChange', changeGiscusTheme, 'giscus')
+
+  if (isShuoshuo) {
+    'Giscus' === 'Giscus'
+      ? window.shuoshuoComment = { loadComment: loadGiscus }
+      : window.loadOtherComment = loadGiscus
+    return
+  }
+
+  if ('Giscus' === 'Giscus' || !false) {
+    if (false) btf.loadComment(document.getElementById('giscus-wrap'), loadGiscus)
+    else loadGiscus()
+  } else {
+    window.loadOtherComment = loadGiscus
+  }
+})()</script></div></div></body></html>
