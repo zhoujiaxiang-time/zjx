@@ -120,14 +120,49 @@
     var search = document.createElement('div');
     search.className = 'zjx-nav-search';
     search.innerHTML = [
+      '<button class="zjx-search-toggle" type="button" aria-label="搜索博客内容" aria-expanded="false">',
       '<i class="fas fa-search" aria-hidden="true"></i>',
-      '<input class="zjx-search-input" type="search" placeholder="搜索" aria-label="搜索博客内容" autocomplete="off">',
-      '<div class="zjx-search-panel" role="listbox"></div>'
+      '</button>',
+      '<div class="zjx-search-popover" aria-hidden="true">',
+      '<input class="zjx-search-input" type="search" placeholder="搜索文章" aria-label="搜索博客内容" autocomplete="off">',
+      '<div class="zjx-search-panel" role="listbox"></div>',
+      '</div>'
     ].join('');
-    menus.insertBefore(search, menus.firstChild);
+    var toggleMenu = menus.querySelector('#toggle-menu');
+    menus.insertBefore(search, toggleMenu || null);
 
+    var toggle = search.querySelector('.zjx-search-toggle');
+    var popover = search.querySelector('.zjx-search-popover');
     var input = search.querySelector('.zjx-search-input');
     var panel = search.querySelector('.zjx-search-panel');
+
+    function openSearch() {
+      search.classList.add('is-open');
+      toggle.setAttribute('aria-expanded', 'true');
+      popover.setAttribute('aria-hidden', 'false');
+      window.setTimeout(function() {
+        input.focus();
+      }, 20);
+      loadSearchData().then(function(posts) {
+        renderResults(panel, posts, input.value);
+      });
+    }
+
+    function closeSearch() {
+      search.classList.remove('is-open');
+      toggle.setAttribute('aria-expanded', 'false');
+      popover.setAttribute('aria-hidden', 'true');
+      panel.classList.remove('is-visible');
+    }
+
+    toggle.addEventListener('click', function(event) {
+      event.preventDefault();
+      if (search.classList.contains('is-open')) {
+        closeSearch();
+      } else {
+        openSearch();
+      }
+    });
 
     input.addEventListener('focus', function() {
       loadSearchData().then(function(posts) {
@@ -143,13 +178,13 @@
 
     input.addEventListener('keydown', function(event) {
       if (event.key === 'Escape') {
-        input.blur();
-        panel.classList.remove('is-visible');
+        closeSearch();
+        toggle.focus();
       }
     });
 
     document.addEventListener('click', function(event) {
-      if (!search.contains(event.target)) panel.classList.remove('is-visible');
+      if (!search.contains(event.target)) closeSearch();
     });
   }
 
