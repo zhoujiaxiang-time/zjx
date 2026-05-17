@@ -315,25 +315,25 @@ a:hover {
   top: 0;
   transform: translate(-50%, -50%);
   pointer-events: none;
-  font-size: 20px;
+  font-size: 30px;
   font-weight: 700;
   line-height: 1;
-  text-shadow: 0 4px 14px rgba(0, 0, 0, 0.18);
-  animation: zjx-heart-float 0.98s ease-out forwards;
+  text-shadow: 0 6px 18px rgba(0, 0, 0, 0.2);
+  animation: zjx-heart-float 1.08s ease-out forwards;
 }
 
 @keyframes zjx-heart-float {
   0% {
     opacity: 0;
-    transform: translate(-50%, -35%) scale(0.45) rotate(0deg);
+    transform: translate(-50%, -35%) scale(0.4) rotate(0deg);
   }
   16% {
     opacity: 1;
-    transform: translate(-50%, -70%) scale(1.1) rotate(-8deg);
+    transform: translate(-50%, -75%) scale(1.16) rotate(-8deg);
   }
   100% {
     opacity: 0;
-    transform: translate(-50%, -180%) scale(1.35) rotate(16deg);
+    transform: translate(-50%, -190%) scale(1.42) rotate(16deg);
   }
 }
 
