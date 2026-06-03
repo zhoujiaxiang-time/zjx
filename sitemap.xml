@@ -2,6 +2,15 @@
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
   
   <url>
+    <loc>https://zjxtime.top/2026/06/03/dgx-spark-local-vllm/</loc>
+    
+    <lastmod>2026-06-03</lastmod>
+    
+    <changefreq>monthly</changefreq>
+    <priority>0.6</priority>
+  </url>
+  
+  <url>
     <loc>https://zjxtime.top/2026/05/16/pytorch-tensor-autograd/</loc>
     
     <lastmod>2026-05-16</lastmod>
@@ -40,7 +49,7 @@
 
   <url>
     <loc>https://zjxtime.top/</loc>
-    <lastmod>2026-05-17</lastmod>
+    <lastmod>2026-06-03</lastmod>
     <changefreq>daily</changefreq>
     <priority>1.0</priority>
   </url>
@@ -48,49 +57,70 @@
   
   <url>
     <loc>https://zjxtime.top/tags/PyTorch/</loc>
-    <lastmod>2026-05-17</lastmod>
+    <lastmod>2026-06-03</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.2</priority>
   </url>
   
   <url>
     <loc>https://zjxtime.top/tags/Tensor/</loc>
-    <lastmod>2026-05-17</lastmod>
+    <lastmod>2026-06-03</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.2</priority>
   </url>
   
   <url>
     <loc>https://zjxtime.top/tags/%E8%87%AA%E5%8A%A8%E6%B1%82%E5%AF%BC/</loc>
-    <lastmod>2026-05-17</lastmod>
+    <lastmod>2026-06-03</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.2</priority>
   </url>
   
   <url>
     <loc>https://zjxtime.top/tags/%E5%8F%8D%E5%90%91%E4%BC%A0%E6%92%AD/</loc>
-    <lastmod>2026-05-17</lastmod>
+    <lastmod>2026-06-03</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.2</priority>
+  </url>
+  
+  <url>
+    <loc>https://zjxtime.top/tags/Agent/</loc>
+    <lastmod>2026-06-03</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.2</priority>
+  </url>
+  
+  <url>
+    <loc>https://zjxtime.top/tags/LLM/</loc>
+    <lastmod>2026-06-03</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.2</priority>
+  </url>
+  
+  <url>
+    <loc>https://zjxtime.top/tags/AI-Infra/</loc>
+    <lastmod>2026-06-03</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.2</priority>
   </url>
   
   <url>
     <loc>https://zjxtime.top/tags/TWT/</loc>
-    <lastmod>2026-05-17</lastmod>
+    <lastmod>2026-06-03</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.2</priority>
   </url>
   
   <url>
     <loc>https://zjxtime.top/tags/%E8%A1%8C%E6%B3%A2%E7%AE%A1/</loc>
-    <lastmod>2026-05-17</lastmod>
+    <lastmod>2026-06-03</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.2</priority>
   </url>
   
   <url>
     <loc>https://zjxtime.top/tags/%E4%BB%BF%E7%9C%9F%E8%AE%BE%E8%AE%A1/</loc>
-    <lastmod>2026-05-17</lastmod>
+    <lastmod>2026-06-03</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.2</priority>
   </url>
@@ -99,14 +129,21 @@
   
   <url>
     <loc>https://zjxtime.top/categories/%E6%B7%B1%E5%BA%A6%E5%AD%A6%E4%B9%A0/</loc>
-    <lastmod>2026-05-17</lastmod>
+    <lastmod>2026-06-03</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.2</priority>
+  </url>
+  
+  <url>
+    <loc>https://zjxtime.top/categories/AI-Infra/</loc>
+    <lastmod>2026-06-03</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.2</priority>
   </url>
   
   <url>
     <loc>https://zjxtime.top/categories/%E4%BB%BF%E7%9C%9F%E6%8A%80%E6%9C%AF%E6%96%87%E6%A1%A3/</loc>
-    <lastmod>2026-05-17</lastmod>
+    <lastmod>2026-06-03</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.2</priority>
   </url>

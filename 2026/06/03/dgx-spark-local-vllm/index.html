@@ -1,0 +1,1351 @@
+<!DOCTYPE html><html lang="zh-CN" data-theme="light"><head><meta charset="UTF-8"><meta http-equiv="X-UA-Compatible" content="IE=edge"><meta name="viewport" content="width=device-width, initial-scale=1.0,viewport-fit=cover"><title>DGX Spark 部署本地模型 | 小渣渣Time的Blog</title><meta name="author" content="Jiaxiang Zhou"><meta name="copyright" content="Jiaxiang Zhou"><meta name="format-detection" content="telephone=no"><meta name="theme-color" content="#ffffff"><meta name="description" content="DGX Spark 上部署、测试和压测本地 vLLM 模型的记录，包括模型选择、环境检查、Docker 与 venv 启动方式以及 benchmark 结果。">
+<meta property="og:type" content="article">
+<meta property="og:title" content="DGX Spark 部署本地模型">
+<meta property="og:url" content="https://zjxtime.top/2026/06/03/dgx-spark-local-vllm/">
+<meta property="og:site_name" content="小渣渣Time的Blog">
+<meta property="og:description" content="DGX Spark 上部署、测试和压测本地 vLLM 模型的记录，包括模型选择、环境检查、Docker 与 venv 启动方式以及 benchmark 结果。">
+<meta property="og:locale" content="zh_CN">
+<meta property="og:image" content="https://zjxtime.top/images/dgx-spark-local-vllm/image-20260528152602900-1779953170838-1-1779953175004-3.png">
+<meta property="article:published_time" content="2026-06-03T15:39:05.000Z">
+<meta property="article:modified_time" content="2026-06-03T15:39:22.569Z">
+<meta property="article:author" content="Jiaxiang Zhou">
+<meta property="article:tag" content="AI Infra">
+<meta property="article:tag" content="Agent">
+<meta property="article:tag" content="LLM">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:image" content="https://zjxtime.top/images/dgx-spark-local-vllm/image-20260528152602900-1779953170838-1-1779953175004-3.png"><script type="application/ld+json">{
+  "@context": "https://schema.org",
+  "@type": "BlogPosting",
+  "headline": "DGX Spark 部署本地模型",
+  "url": "https://zjxtime.top/2026/06/03/dgx-spark-local-vllm/",
+  "image": "https://zjxtime.top/images/dgx-spark-local-vllm/image-20260528152602900-1779953170838-1-1779953175004-3.png",
+  "datePublished": "2026-06-03T15:39:05.000Z",
+  "dateModified": "2026-06-03T15:39:22.569Z",
+  "author": [
+    {
+      "@type": "Person",
+      "name": "Jiaxiang Zhou",
+      "url": "https://zjxtime.top"
+    }
+  ]
+}</script><link rel="shortcut icon" href="/images/favicon.png"><link rel="canonical" href="https://zjxtime.top/2026/06/03/dgx-spark-local-vllm/"><link rel="preconnect" href="//cdn.jsdelivr.net"/><link rel="stylesheet" href="/css/index.css?v=5.5.4"><link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@7.1.0/css/all.min.css"><script>
+    (() => {
+      
+    const saveToLocal = {
+      set: (key, value, ttl) => {
+        if (!ttl) return
+        const expiry = Date.now() + ttl * 86400000
+        localStorage.setItem(key, JSON.stringify({ value, expiry }))
+      },
+      get: key => {
+        const itemStr = localStorage.getItem(key)
+        if (!itemStr) return undefined
+        const { value, expiry } = JSON.parse(itemStr)
+        if (Date.now() > expiry) {
+          localStorage.removeItem(key)
+          return undefined
+        }
+        return value
+      }
+    }
+
+    window.btf = {
+      saveToLocal,
+      getScript: (url, attr = {}) => new Promise((resolve, reject) => {
+        const script = document.createElement('script')
+        script.src = url
+        script.async = true
+        Object.entries(attr).forEach(([key, val]) => script.setAttribute(key, val))
+        script.onload = script.onreadystatechange = () => {
+          if (!script.readyState || /loaded|complete/.test(script.readyState)) resolve()
+        }
+        script.onerror = reject
+        document.head.appendChild(script)
+      }),
+      getCSS: (url, id) => new Promise((resolve, reject) => {
+        const link = document.createElement('link')
+        link.rel = 'stylesheet'
+        link.href = url
+        if (id) link.id = id
+        link.onload = link.onreadystatechange = () => {
+          if (!link.readyState || /loaded|complete/.test(link.readyState)) resolve()
+        }
+        link.onerror = reject
+        document.head.appendChild(link)
+      }),
+      addGlobalFn: (key, fn, name = false, parent = window) => {
+        if (!false && key.startsWith('pjax')) return
+        const globalFn = parent.globalFn || {}
+        globalFn[key] = globalFn[key] || {}
+        globalFn[key][name || Object.keys(globalFn[key]).length] = fn
+        parent.globalFn = globalFn
+      }
+    }
+  
+      
+      const activateDarkMode = () => {
+        document.documentElement.setAttribute('data-theme', 'dark')
+        if (document.querySelector('meta[name="theme-color"]') !== null) {
+          document.querySelector('meta[name="theme-color"]').setAttribute('content', '#0d0d0d')
+        }
+      }
+      const activateLightMode = () => {
+        document.documentElement.setAttribute('data-theme', 'light')
+        if (document.querySelector('meta[name="theme-color"]') !== null) {
+          document.querySelector('meta[name="theme-color"]').setAttribute('content', '#ffffff')
+        }
+      }
+
+      btf.activateDarkMode = activateDarkMode
+      btf.activateLightMode = activateLightMode
+
+      const theme = saveToLocal.get('theme')
+    
+          theme === 'dark' ? activateDarkMode() : theme === 'light' ? activateLightMode() : null
+        
+      
+      const asideStatus = saveToLocal.get('aside-status')
+      if (asideStatus !== undefined) {
+        document.documentElement.classList.toggle('hide-aside', asideStatus === 'hide')
+      }
+    
+      
+    const detectApple = () => {
+      if (/iPad|iPhone|iPod|Macintosh/.test(navigator.userAgent)) {
+        document.documentElement.classList.add('apple')
+      }
+    }
+    detectApple()
+  
+    })()
+  </script><script>const GLOBAL_CONFIG = {
+  root: '/',
+  algolia: undefined,
+  localSearch: undefined,
+  translate: undefined,
+  highlight: {"plugin":"highlight.js","highlightCopy":true,"highlightLang":true,"highlightHeightLimit":false,"highlightFullpage":false,"highlightMacStyle":false},
+  copy: {
+    success: '复制成功',
+    error: '复制失败',
+    noSupport: '浏览器不支持'
+  },
+  relativeDate: {
+    homepage: false,
+    post: false
+  },
+  runtime: '',
+  dateSuffix: {
+    just: '刚刚',
+    min: '分钟前',
+    hour: '小时前',
+    day: '天前',
+    month: '个月前'
+  },
+  copyright: {"limitCount":120,"languages":{"author":"作者: Jiaxiang Zhou","link":"链接: ","source":"来源: 小渣渣Time的Blog","info":"著作权归作者所有。商业转载请联系作者获得授权，非商业转载请注明出处。"}},
+  lightbox: 'null',
+  Snackbar: undefined,
+  infinitegrid: {
+    js: 'https://cdn.jsdelivr.net/npm/@egjs/infinitegrid@4.13.0/dist/infinitegrid.min.js',
+    buttonText: '加载更多'
+  },
+  isPhotoFigcaption: false,
+  islazyloadPlugin: false,
+  isAnchor: false,
+  percent: {
+    toc: true,
+    rightside: false,
+  },
+  autoDarkmode: false
+}</script><script id="config-diff">var GLOBAL_CONFIG_SITE = {
+  title: 'DGX Spark 部署本地模型',
+  isHighlightShrink: false,
+  isToc: true,
+  pageType: 'post'
+}</script><link rel="preload" as="image" href="/images/background-optimized.jpg"><link rel="stylesheet" href="/css/zjxtime-butterfly.css"><meta name="generator" content="Hexo 8.1.1"><script>window.MathJax = {  tex: {    inlineMath: [['\\(', '\\)']],    displayMath: [['\\[', '\\]']],    processEscapes: true  },  options: { skipHtmlTags: ['script', 'noscript', 'style', 'textarea', 'pre', 'code'] }};</script><script defer src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-chtml.js"></script></head><body><div class="bg-animation" id="web_bg" style="background-image: url(/images/background-optimized.jpg);"></div><div id="sidebar"><div id="menu-mask"></div><div id="sidebar-menus"><div class="avatar-img text-center"><img src="/images/touxiang.jpg" onerror="this.onerror=null;this.src='/img/friend_404.gif'" alt="avatar"/></div><div class="site-data text-center"><a href="/archives/"><div class="headline">文章</div><div class="length-num">3</div></a><a href="/tags/"><div class="headline">标签</div><div class="length-num">10</div></a><a href="/categories/"><div class="headline">分类</div><div class="length-num">3</div></a></div><div class="menus_items"><div class="menus_item"><a class="site-page" href="/"><i class="fa-fw fas fa-home"></i><span> 首页</span></a></div><div class="menus_item"><a class="site-page" href="/archives/"><i class="fa-fw fas fa-box-archive"></i><span> 归档</span></a></div><div class="menus_item"><a class="site-page" href="/categories/"><i class="fa-fw fas fa-folder-open"></i><span> 分类</span></a></div><div class="menus_item"><a class="site-page" href="/tags/"><i class="fa-fw fas fa-tags"></i><span> 标签</span></a></div></div></div></div><div class="post" id="body-wrap"><header class="post-bg fixed" id="page-header" style="background-image: url(/images/dgx-spark-local-vllm/image-20260528152602900-1779953170838-1-1779953175004-3.png);"><nav id="nav"><span id="blog-info"><a class="nav-site-title" href="/"><span class="site-name">小渣渣Time的Blog</span></a><a class="nav-page-title" href="/"><span class="site-name">DGX Spark 部署本地模型</span><span class="site-name"><i class="fa-solid fa-circle-arrow-left"></i><span>  返回首页</span></span></a></span><div id="menus"><div class="menus_items"><div class="menus_item"><a class="site-page" href="/"><i class="fa-fw fas fa-home"></i><span> 首页</span></a></div><div class="menus_item"><a class="site-page" href="/archives/"><i class="fa-fw fas fa-box-archive"></i><span> 归档</span></a></div><div class="menus_item"><a class="site-page" href="/categories/"><i class="fa-fw fas fa-folder-open"></i><span> 分类</span></a></div><div class="menus_item"><a class="site-page" href="/tags/"><i class="fa-fw fas fa-tags"></i><span> 标签</span></a></div></div><div id="toggle-menu"><span class="site-page"><i class="fas fa-bars fa-fw"></i></span></div></div></nav><div id="post-info"><h1 class="post-title">DGX Spark 部署本地模型</h1><div id="post-meta"><div class="meta-firstline"><span class="post-meta-date"><i class="far fa-calendar-alt fa-fw post-meta-icon"></i><span class="post-meta-label">发表于</span><time class="post-meta-date-created" datetime="2026-06-03T15:39:05.000Z" title="发表于 2026-06-03 23:39:05">2026-06-03</time><span class="post-meta-separator">|</span><i class="fas fa-history fa-fw post-meta-icon"></i><span class="post-meta-label">更新于</span><time class="post-meta-date-updated" datetime="2026-06-03T15:39:22.569Z" title="更新于 2026-06-03 23:39:22">2026-06-03</time></span><span class="post-meta-categories"><span class="post-meta-separator">|</span><i class="fas fa-inbox fa-fw post-meta-icon"></i><a class="post-meta-categories" href="/categories/AI-Infra/">AI Infra</a></span></div><div class="meta-secondline"></div></div></div></header><main class="layout" id="content-inner"><div id="post"><article class="container post-content" id="article-container"><h1 id="DGX-Spark-部署本地模型"><a href="#DGX-Spark-部署本地模型" class="headerlink" title="DGX Spark 部署本地模型"></a>DGX Spark 部署本地模型</h1><p>本文记录在 DGX Spark &#x2F; 128G 级别机器上下载、启动、测试和压测本地 vLLM 模型。</p>
+<p>以下内容默认在 DGX 的 Linux shell 中执行，模型统一放在：</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">~/.cache/huggingface/models</span><br></pre></td></tr></table></figure>
+
+<h2 id="1-结论和模型选择"><a href="#1-结论和模型选择" class="headerlink" title="1. 结论和模型选择"></a>1. 结论和模型选择</h2><table>
+<thead>
+<tr>
+<th>场景</th>
+<th>推荐模型</th>
+<th>启动方式</th>
+<th>说明</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>日常代码 Agent、IDE 补全、轻量多人使用</td>
+<td><code>Qwen3-Coder-30B-A3B-Instruct-FP8</code></td>
+<td>NVIDIA vLLM Docker</td>
+<td>30G FP8，短上下文响应快，Docker 镜像可直接加载</td>
+</tr>
+<tr>
+<td>复杂代码任务、较长上下文、质量优先</td>
+<td><code>Qwen3-Coder-Next-FP8</code></td>
+<td>NVIDIA vLLM Docker</td>
+<td>54.1G FP8，可跑 16K&#x2F;64K 场景，但多人高并发延迟明显变差</td>
+</tr>
+<tr>
+<td>当前最值得保留的综合模型</td>
+<td><code>Qwen3.6-35B-A3B-FP8</code></td>
+<td>本机 venv vLLM</td>
+<td>短上下文、中等上下文、长上下文都表现较好，但启动后主机内存占用很高</td>
+</tr>
+<tr>
+<td>非 FP8 质量对照、8K 内测试</td>
+<td><code>Qwen3.5-35B-A3B</code></td>
+<td>本机 venv vLLM</td>
+<td>能跑通，但需要保守参数，不适合作为长上下文默认模型</td>
+</tr>
+</tbody></table>
+<p>不放入主流程的内容：</p>
+<table>
+<thead>
+<tr>
+<th>模型</th>
+<th>原因</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><code>Qwen3-Coder-Next</code></td>
+<td>75G，实测内存不够</td>
+</tr>
+<tr>
+<td><code>GLM-4.7-Flash</code></td>
+<td>启动后机器进入极重加载&#x2F;换页状态，未进入 benchmark</td>
+</tr>
+<tr>
+<td>Docker 方式启动 <code>Qwen3.6-27B-FP8</code> &#x2F; <code>Qwen3.6-35B-A3B-FP8</code></td>
+<td><code>nvcr.io/nvidia/vllm:26.01-py3</code> 内置软件栈不识别 <code>qwen3_5</code> &#x2F; <code>qwen3_5_moe</code> 架构，需要换新版 vLLM&#x2F;Transformers</td>
+</tr>
+</tbody></table>
+<h2 id="2-环境检查"><a href="#2-环境检查" class="headerlink" title="2. 环境检查"></a>2. 环境检查</h2><p>先检查 Hugging Face、代理和离线变量，避免下载或启动时被旧环境变量影响。</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line"><span class="built_in">echo</span> <span class="variable">$HF_ENDPOINT</span></span><br><span class="line"><span class="built_in">env</span> | grep -i proxy</span><br><span class="line"><span class="built_in">env</span> | grep -E <span class="string">&#x27;HF_HUB_OFFLINE|TRANSFORMERS_OFFLINE|HF_ENDPOINT&#x27;</span></span><br></pre></td></tr></table></figure>
+
+<p>如果要下载模型，确保不要处于离线模式：</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="built_in">unset</span> HF_HUB_OFFLINE TRANSFORMERS_OFFLINE</span><br></pre></td></tr></table></figure>
+
+<p>如果代理不可用或会干扰访问，可以先清掉代理：</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="built_in">unset</span> HTTP_PROXY HTTPS_PROXY ALL_PROXY http_proxy https_proxy all_proxy</span><br></pre></td></tr></table></figure>
+
+<p>国内网络建议使用 Hugging Face 镜像：</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="built_in">export</span> HF_ENDPOINT=https://hf-mirror.com</span><br></pre></td></tr></table></figure>
+
+<p>参数说明：</p>
+<table>
+<thead>
+<tr>
+<th>变量 &#x2F; 命令</th>
+<th>含义</th>
+<th>影响</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><code>HF_ENDPOINT</code></td>
+<td>Hugging Face Hub 访问入口</td>
+<td>设成 <code>https://hf-mirror.com</code> 后，<code>hf download</code> 会从镜像站下载</td>
+</tr>
+<tr>
+<td><code>HF_HUB_OFFLINE=1</code></td>
+<td>Hugging Face Hub 离线模式</td>
+<td>启动或压测本地模型时很有用，避免联网检查；下载模型前必须取消</td>
+</tr>
+<tr>
+<td><code>TRANSFORMERS_OFFLINE=1</code></td>
+<td>Transformers 离线模式</td>
+<td>避免 Transformers 联网找配置；本地文件完整时建议用于服务启动和 benchmark</td>
+</tr>
+<tr>
+<td><code>HTTP_PROXY</code> &#x2F; <code>HTTPS_PROXY</code> &#x2F; <code>ALL_PROXY</code></td>
+<td>网络代理</td>
+<td>代理错误会导致下载失败；确认代理可用后再设置</td>
+</tr>
+</tbody></table>
+<h2 id="3-下载模型"><a href="#3-下载模型" class="headerlink" title="3. 下载模型"></a>3. 下载模型</h2><p>下载前先用 <code>curl</code> 验证镜像站是否能访问模型配置文件：</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">curl -I https://hf-mirror.com/Qwen/Qwen3-Coder-Next-FP8/resolve/main/config.json</span><br></pre></td></tr></table></figure>
+
+<p>下载 <code>Qwen3-Coder-Next-FP8</code>：</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line"><span class="built_in">export</span> HF_ENDPOINT=https://hf-mirror.com</span><br><span class="line"></span><br><span class="line">hf download Qwen/Qwen3-Coder-Next-FP8 \</span><br><span class="line">  --local-dir ~/.cache/huggingface/models/Qwen3-Coder-Next-FP8</span><br></pre></td></tr></table></figure>
+
+<p>下载命令参数说明：</p>
+<table>
+<thead>
+<tr>
+<th>参数</th>
+<th>含义</th>
+<th>影响</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><code>hf download</code></td>
+<td>Hugging Face CLI 的下载命令</td>
+<td>会把模型仓库文件下载到本地</td>
+</tr>
+<tr>
+<td><code>Qwen/Qwen3-Coder-Next-FP8</code></td>
+<td>Hugging Face 模型仓库名</td>
+<td>换模型时改这里</td>
+</tr>
+<tr>
+<td><code>--local-dir</code></td>
+<td>指定本地保存目录</td>
+<td>vLLM 启动时直接指向这个目录；建议所有模型统一放到 <code>~/.cache/huggingface/models</code></td>
+</tr>
+</tbody></table>
+<p>确认模型目录大小：</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line"><span class="built_in">du</span> -sh ~/.cache/huggingface/models/Qwen3-Coder-Next-FP8</span><br><span class="line"><span class="built_in">ls</span> -lh ~/.cache/huggingface/models</span><br></pre></td></tr></table></figure>
+
+<p>删除不需要的模型前先确认目录：</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line"><span class="built_in">du</span> -sh ~/.cache/huggingface/models/Qwen3-Coder-Next</span><br><span class="line"><span class="built_in">rm</span> -rf ~/.cache/huggingface/models/Qwen3-Coder-Next</span><br><span class="line"><span class="built_in">ls</span> -lh ~/.cache/huggingface/models</span><br></pre></td></tr></table></figure>
+
+<p><code>rm -rf</code> 会直接删除目录，执行前必须确认路径完整且没有变量拼错。</p>
+<h2 id="4-用-Docker-启动-vLLM"><a href="#4-用-Docker-启动-vLLM" class="headerlink" title="4. 用 Docker 启动 vLLM"></a>4. 用 Docker 启动 vLLM</h2><p>Docker 方式适合 <code>Qwen3-Coder-30B-A3B-Instruct-FP8</code> 和 <code>Qwen3-Coder-Next-FP8</code>。原测试使用镜像：</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">nvcr.io/nvidia/vllm:26.01-py3</span><br></pre></td></tr></table></figure>
+
+<h3 id="4-1-启动-Qwen3-Coder-30B-A3B-Instruct-FP8"><a href="#4-1-启动-Qwen3-Coder-30B-A3B-Instruct-FP8" class="headerlink" title="4.1 启动 Qwen3-Coder-30B-A3B-Instruct-FP8"></a>4.1 启动 Qwen3-Coder-30B-A3B-Instruct-FP8</h3><figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br></pre></td><td class="code"><pre><span class="line">docker run -it --gpus all --network host \</span><br><span class="line">  --ipc=host --<span class="built_in">ulimit</span> memlock=-1 --<span class="built_in">ulimit</span> stack=67108864 \</span><br><span class="line">  -v ~/.cache/huggingface:/root/.cache/huggingface \</span><br><span class="line">  nvcr.io/nvidia/vllm:26.01-py3 \</span><br><span class="line">  vllm serve /root/.cache/huggingface/models/Qwen3-Coder-30B-A3B-Instruct-FP8 \</span><br><span class="line">  --host 0.0.0.0 \</span><br><span class="line">  --port 8000 \</span><br><span class="line">  --served-model-name Qwen3-Coder-30B-A3B-Instruct-FP8 \</span><br><span class="line">  --max-model-len 65536 \</span><br><span class="line">  --enable-prefix-caching \</span><br><span class="line">  --gpu-memory-utilization 0.85</span><br></pre></td></tr></table></figure>
+
+<p>适用判断：</p>
+<table>
+<thead>
+<tr>
+<th>项目</th>
+<th>结果</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>模型大小</td>
+<td>约 30G</td>
+</tr>
+<tr>
+<td>512 输入 &#x2F; 256 输出 &#x2F; 20 请求 &#x2F; 1 RPS</td>
+<td>全部成功，Mean TTFT 约 256ms，Mean TPOT 约 57ms</td>
+</tr>
+<tr>
+<td>推荐用途</td>
+<td>默认代码 Agent、日常 IDE、轻量多人</td>
+</tr>
+</tbody></table>
+<p>启动后使用 <code>watch -n 1 free -h</code> 观察 DGX 主机内存：</p>
+<p><img src="/images/dgx-spark-local-vllm/image-20260528152602900-1779953170838-1-1779953175004-3.png" alt="Qwen3-Coder-30B-A3B-Instruct-FP8 启动后内存监测"></p>
+<p>截图显示：总内存约 <code>121Gi</code>，已用约 <code>109Gi</code>，可用约 <code>11Gi</code>，swap 基本没有明显压力。这说明 30B FP8 虽然已经占用大部分主机内存，但仍保留了一定余量，适合作为日常代码 Agent 默认模型。</p>
+<h3 id="4-2-启动-Qwen3-Coder-Next-FP8"><a href="#4-2-启动-Qwen3-Coder-Next-FP8" class="headerlink" title="4.2 启动 Qwen3-Coder-Next-FP8"></a>4.2 启动 Qwen3-Coder-Next-FP8</h3><p>短上下文或中等上下文启动：</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br></pre></td><td class="code"><pre><span class="line">docker run -it --gpus all --network host \</span><br><span class="line">  --ipc=host --<span class="built_in">ulimit</span> memlock=-1 --<span class="built_in">ulimit</span> stack=67108864 \</span><br><span class="line">  -v ~/.cache/huggingface:/root/.cache/huggingface \</span><br><span class="line">  nvcr.io/nvidia/vllm:26.01-py3 \</span><br><span class="line">  vllm serve /root/.cache/huggingface/models/Qwen3-Coder-Next-FP8 \</span><br><span class="line">  --host 0.0.0.0 \</span><br><span class="line">  --port 8000 \</span><br><span class="line">  --served-model-name Qwen3-Coder-Next-FP8 \</span><br><span class="line">  --max-model-len 8192 \</span><br><span class="line">  --gpu-memory-utilization 0.75</span><br></pre></td></tr></table></figure>
+
+<p>16K 上下文启动：</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br></pre></td><td class="code"><pre><span class="line">docker run -it --gpus all --network host \</span><br><span class="line">  --ipc=host --<span class="built_in">ulimit</span> memlock=-1 --<span class="built_in">ulimit</span> stack=67108864 \</span><br><span class="line">  -v ~/.cache/huggingface:/root/.cache/huggingface \</span><br><span class="line">  nvcr.io/nvidia/vllm:26.01-py3 \</span><br><span class="line">  vllm serve /root/.cache/huggingface/models/Qwen3-Coder-Next-FP8 \</span><br><span class="line">  --host 0.0.0.0 \</span><br><span class="line">  --port 8000 \</span><br><span class="line">  --served-model-name Qwen3-Coder-Next-FP8 \</span><br><span class="line">  --max-model-len 16384 \</span><br><span class="line">  --gpu-memory-utilization 0.75</span><br></pre></td></tr></table></figure>
+
+<p>适用判断：</p>
+<table>
+<thead>
+<tr>
+<th>项目</th>
+<th>结果</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>模型大小</td>
+<td>约 54.1G</td>
+</tr>
+<tr>
+<td>2048 输入 &#x2F; 512 输出 &#x2F; 20 请求 &#x2F; 1 RPS</td>
+<td>全部成功，Mean TTFT 约 4.4s，Mean TPOT 约 124ms</td>
+</tr>
+<tr>
+<td>2048 输入 &#x2F; 512 输出 &#x2F; 50 请求 &#x2F; 4 RPS</td>
+<td>全部成功，但 Mean TTFT 约 9s，P99 TTFT 超过 20s</td>
+</tr>
+<tr>
+<td>14336 输入 &#x2F; 1024 输出 &#x2F; 3 请求 &#x2F; 0.1 RPS</td>
+<td>全部成功，16K 级上下文可用</td>
+</tr>
+<tr>
+<td>32768 输入 &#x2F; 8192 输出 &#x2F; 2 请求 &#x2F; 0.03 RPS</td>
+<td>全部成功，但总耗时约 6 分钟</td>
+</tr>
+<tr>
+<td>推荐用途</td>
+<td>复杂任务、长上下文单人或低并发</td>
+</tr>
+<tr>
+<td>不推荐用途</td>
+<td>多人高并发默认模型</td>
+</tr>
+</tbody></table>
+<p>启动后使用 <code>watch -n 1 free -h</code> 观察 DGX 主机内存：</p>
+<p><img src="/images/dgx-spark-local-vllm/image-20260529092145676-1780017710112-5-1780017712898-7.png" alt="Qwen3-Coder-Next-FP8 启动后内存监测"></p>
+<p>截图显示：总内存约 <code>121Gi</code>，已用约 <code>98Gi</code>，可用约 <code>23Gi</code>，swap 使用约 <code>1.7Gi</code>。相比 30B FP8，Next-FP8 启动时主机可用内存更多，但已经出现 swap 使用；后续做长上下文和并发压测时，需要同时看 <code>free -h</code> 和 vLLM 日志里的 KV cache &#x2F; Waiting 状态。</p>
+<h3 id="4-3-Docker-参数说明"><a href="#4-3-Docker-参数说明" class="headerlink" title="4.3 Docker 参数说明"></a>4.3 Docker 参数说明</h3><table>
+<thead>
+<tr>
+<th>参数</th>
+<th>含义</th>
+<th>影响</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><code>docker run</code></td>
+<td>创建并运行容器</td>
+<td>每次执行会启动一个新的 vLLM 服务容器</td>
+</tr>
+<tr>
+<td><code>-it</code></td>
+<td>交互式终端</td>
+<td>适合前台观察日志；SSH 断开或终端关闭时服务可能停止</td>
+</tr>
+<tr>
+<td><code>--rm</code></td>
+<td>容器退出后自动删除</td>
+<td>适合一次性 benchmark，不适合长期服务</td>
+</tr>
+<tr>
+<td><code>-d</code></td>
+<td>后台运行容器</td>
+<td>适合生产或长时间服务，需配合 <code>docker logs</code> 查看日志</td>
+</tr>
+<tr>
+<td><code>--name &lt;name&gt;</code></td>
+<td>指定容器名</td>
+<td>方便 <code>docker logs &lt;name&gt;</code>、<code>docker stop &lt;name&gt;</code> 管理</td>
+</tr>
+<tr>
+<td><code>--gpus all</code></td>
+<td>把所有 GPU 暴露给容器</td>
+<td>vLLM 才能使用 NVIDIA GPU；如果只想用部分 GPU，需要改成指定设备</td>
+</tr>
+<tr>
+<td><code>--network host</code></td>
+<td>使用宿主机网络</td>
+<td>容器内监听 <code>8000</code> 等同宿主机 <code>8000</code>；最简单，但端口冲突要自己处理</td>
+</tr>
+<tr>
+<td><code>--ipc=host</code></td>
+<td>使用宿主机 IPC 命名空间</td>
+<td>减少共享内存限制导致的问题，常用于大模型容器</td>
+</tr>
+<tr>
+<td><code>--ulimit memlock=-1</code></td>
+<td>允许锁定内存无限制</td>
+<td>避免部分 CUDA &#x2F; NCCL &#x2F; 推理路径受内存锁定限制影响</td>
+</tr>
+<tr>
+<td><code>--ulimit stack=67108864</code></td>
+<td>设置栈大小为 64MiB</td>
+<td>防止深调用或底层库栈空间不足</td>
+</tr>
+<tr>
+<td><code>-e HF_HUB_OFFLINE=1</code></td>
+<td>容器内开启 Hugging Face 离线模式</td>
+<td>本地模型完整时建议开启，避免启动时联网</td>
+</tr>
+<tr>
+<td><code>-e TRANSFORMERS_OFFLINE=1</code></td>
+<td>容器内开启 Transformers 离线模式</td>
+<td>避免 Transformers 联网拉配置</td>
+</tr>
+<tr>
+<td><code>-v ~/.cache/huggingface:/root/.cache/huggingface</code></td>
+<td>挂载宿主机模型缓存到容器</td>
+<td>容器内模型路径要写 <code>/root/.cache/huggingface/...</code></td>
+</tr>
+<tr>
+<td><code>nvcr.io/nvidia/vllm:26.01-py3</code></td>
+<td>NVIDIA vLLM 容器镜像</td>
+<td>决定 vLLM、Transformers、CUDA、Torch 版本；新模型架构不识别时需要换镜像或 venv</td>
+</tr>
+<tr>
+<td><code>bash -lc &#39;&lt;cmd&gt;&#39;</code></td>
+<td>在容器内用 bash 执行命令</td>
+<td>benchmark 命令较长时方便传入多行命令</td>
+</tr>
+</tbody></table>
+<h3 id="4-4-vLLM-serve-参数说明"><a href="#4-4-vLLM-serve-参数说明" class="headerlink" title="4.4 vLLM serve 参数说明"></a>4.4 vLLM serve 参数说明</h3><table>
+<thead>
+<tr>
+<th>参数</th>
+<th>含义</th>
+<th>影响</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><code>vllm serve &lt;model_path&gt;</code></td>
+<td>启动 OpenAI 兼容服务，加载指定模型目录</td>
+<td><code>&lt;model_path&gt;</code> 必须包含 <code>config.json</code>、tokenizer 和权重文件</td>
+</tr>
+<tr>
+<td><code>--host 0.0.0.0</code></td>
+<td>监听所有网卡</td>
+<td>局域网其他机器可以访问；只本机访问可用 <code>127.0.0.1</code></td>
+</tr>
+<tr>
+<td><code>--port 8000</code></td>
+<td>服务端口</td>
+<td>OpenAI 兼容接口会暴露在 <code>http://&lt;host&gt;:8000/v1</code>；端口冲突会启动失败</td>
+</tr>
+<tr>
+<td><code>--served-model-name</code></td>
+<td>对外暴露的模型名</td>
+<td>API 请求里的 <code>&quot;model&quot;</code> 必须和它一致；可以和目录名不同</td>
+</tr>
+<tr>
+<td><code>--max-model-len</code></td>
+<td>单请求最大上下文长度</td>
+<td>必须大于等于输入 tokens + 输出 tokens；值越大，KV cache 预留越多，显存&#x2F;内存压力越高，并发能力可能下降</td>
+</tr>
+<tr>
+<td><code>--enable-prefix-caching</code></td>
+<td>开启前缀缓存</td>
+<td>多个请求有相同系统提示词或相同代码上下文前缀时可减少重复 prefill；会占用额外缓存管理资源</td>
+</tr>
+<tr>
+<td><code>--gpu-memory-utilization</code></td>
+<td>vLLM 可使用的 GPU 显存比例</td>
+<td>值越高，KV cache 越大、可支持更长上下文或更多并发；太高可能 OOM 或影响系统稳定</td>
+</tr>
+<tr>
+<td><code>--tensor-parallel-size</code></td>
+<td>张量并行 GPU 数</td>
+<td>单卡机器设 <code>1</code>；多卡模型切分时才调大</td>
+</tr>
+<tr>
+<td><code>--reasoning-parser qwen3</code></td>
+<td>使用 Qwen3 推理内容解析器</td>
+<td>适合 Qwen3 系列 reasoning 输出格式；不需要 reasoning 格式时可省略</td>
+</tr>
+<tr>
+<td><code>--language-model-only</code></td>
+<td>只启用语言模型能力</td>
+<td>避免多模态等额外逻辑；纯文本模型建议启用</td>
+</tr>
+<tr>
+<td><code>--enable-auto-tool-choice</code></td>
+<td>开启自动工具调用选择</td>
+<td>opencode 这类 Agent 会通过 OpenAI tool calling 协议让模型决定是否调用工具；不开时工具调用兼容性会变差</td>
+</tr>
+<tr>
+<td><code>--tool-call-parser qwen3_coder</code></td>
+<td>指定工具调用解析器</td>
+<td>Qwen3 &#x2F; Qwen3-Coder 系列接 opencode 时建议使用 <code>qwen3_coder</code>；实测 <code>hermes</code> 会导致 opencode 没什么输出</td>
+</tr>
+<tr>
+<td><code>--moe-backend triton</code></td>
+<td>MoE 专家计算后端</td>
+<td>某些非 FP8 MoE 模型默认后端会 JIT 失败，用 <code>triton</code> 可避开部分问题</td>
+</tr>
+<tr>
+<td><code>--max-num-seqs</code></td>
+<td>同时调度的最大序列数</td>
+<td>降低它可以减少 cache 和调度压力；太低会限制并发吞吐</td>
+</tr>
+</tbody></table>
+<p>关键调参关系：</p>
+<figure class="highlight text"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line">max-model-len &gt;= 输入 tokens + 输出 tokens</span><br><span class="line">gpu-memory-utilization 越高，KV cache 越大，但 OOM 风险越高</span><br><span class="line">并发越高，总吞吐可能提高，但单个用户的 TTFT 和 TPOT 通常会变差</span><br><span class="line">长输入主要增加 prefill 时间，所以最明显影响 TTFT</span><br><span class="line">长输出主要增加 decode 时间，所以最明显影响总耗时和 TPOT</span><br></pre></td></tr></table></figure>
+
+<h2 id="5-用本机-venv-启动新版架构模型"><a href="#5-用本机-venv-启动新版架构模型" class="headerlink" title="5. 用本机 venv 启动新版架构模型"></a>5. 用本机 venv 启动新版架构模型</h2><p><code>Qwen3.6-27B-FP8</code> 和 <code>Qwen3.6-35B-A3B-FP8</code> 在 Docker 镜像 <code>nvcr.io/nvidia/vllm:26.01-py3</code> 中启动失败，原因是该镜像内置 Transformers&#x2F;vLLM 不识别 <code>qwen3_5</code> &#x2F; <code>qwen3_5_moe</code> 架构。</p>
+<p>已经跑通的本机环境：</p>
+<table>
+<thead>
+<tr>
+<th>项目</th>
+<th>结果</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>vLLM</td>
+<td>0.22.0</td>
+</tr>
+<tr>
+<td>Transformers</td>
+<td>5.9.0</td>
+</tr>
+<tr>
+<td>Torch</td>
+<td>2.11.0+cu130</td>
+</tr>
+<tr>
+<td>启动方式</td>
+<td><code>source ~/.venv/bin/activate</code> 后直接 <code>vllm serve</code></td>
+</tr>
+</tbody></table>
+<h3 id="5-1-启动-Qwen3-6-35B-A3B-FP8"><a href="#5-1-启动-Qwen3-6-35B-A3B-FP8" class="headerlink" title="5.1 启动 Qwen3.6-35B-A3B-FP8"></a>5.1 启动 Qwen3.6-35B-A3B-FP8</h3><p>前台启动：</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br></pre></td><td class="code"><pre><span class="line"><span class="built_in">source</span> ~/.venv/bin/activate</span><br><span class="line"></span><br><span class="line">vllm serve ~/.cache/huggingface/models/Qwen3.6-35B-A3B-FP8 \</span><br><span class="line">  --host 0.0.0.0 \</span><br><span class="line">  --port 8000 \</span><br><span class="line">  --tensor-parallel-size 1 \</span><br><span class="line">  --max-model-len 131072 \</span><br><span class="line">  --reasoning-parser qwen3 \</span><br><span class="line">  --language-model-only \</span><br><span class="line">  --enable-auto-tool-choice \</span><br><span class="line">  --tool-call-parser qwen3_coder \</span><br><span class="line">  --served-model-name Qwen3.6-35B-A3B-FP8</span><br></pre></td></tr></table></figure>
+
+<p>后台启动：</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br></pre></td><td class="code"><pre><span class="line"><span class="built_in">source</span> ~/.venv/bin/activate</span><br><span class="line"></span><br><span class="line"><span class="built_in">nohup</span> vllm serve ~/.cache/huggingface/models/Qwen3.6-35B-A3B-FP8 \</span><br><span class="line">  --host 0.0.0.0 \</span><br><span class="line">  --port 8000 \</span><br><span class="line">  --tensor-parallel-size 1 \</span><br><span class="line">  --max-model-len 131072 \</span><br><span class="line">  --reasoning-parser qwen3 \</span><br><span class="line">  --language-model-only \</span><br><span class="line">  --enable-auto-tool-choice \</span><br><span class="line">  --tool-call-parser qwen3_coder \</span><br><span class="line">  --served-model-name Qwen3.6-35B-A3B-FP8 \</span><br><span class="line">  &gt; /tmp/codex_vllm_qwen36_35b.<span class="built_in">log</span> 2&gt;&amp;1 &amp;</span><br><span class="line"></span><br><span class="line"><span class="built_in">echo</span> $! &gt; /tmp/codex_vllm_qwen36_35b.pid</span><br></pre></td></tr></table></figure>
+
+<p>启动后使用 <code>watch -n 1 free -h</code> 观察 DGX 主机内存：</p>
+<p><img src="/images/dgx-spark-local-vllm/image-20260603232552754-1780500356129-1-1780500359756-3.png" alt="Qwen3.6-35B-A3B-FP8 启动后内存监测"></p>
+<p>截图显示：总内存约 <code>121Gi</code>，已用约 <code>118Gi</code>，可用约 <code>3.0Gi</code>，buff&#x2F;cache 约 <code>3.3Gi</code>。这和后续测试记录一致：<code>Qwen3.6-35B-A3B-FP8</code> 能跑通长上下文和真实 Agent 任务，但主机内存余量非常小。因此这个模型可以保留为高质量默认候选，但不建议继续做 64K&#x2F;128K 多人并发压测。</p>
+<p>后台启动参数说明：</p>
+<table>
+<thead>
+<tr>
+<th>参数 &#x2F; 写法</th>
+<th>含义</th>
+<th>影响</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><code>source ~/.venv/bin/activate</code></td>
+<td>激活本机 Python 虚拟环境</td>
+<td>使用 venv 里的新版 vLLM &#x2F; Transformers</td>
+</tr>
+<tr>
+<td><code>nohup ... &amp;</code></td>
+<td>后台运行，终端退出后继续服务</td>
+<td>适合长期服务；日志不会直接显示在终端</td>
+</tr>
+<tr>
+<td><code>&gt; /tmp/xxx.log 2&gt;&amp;1</code></td>
+<td>stdout 和 stderr 都写入日志</td>
+<td>用 <code>tail -f /tmp/xxx.log</code> 观察加载和运行状态</td>
+</tr>
+<tr>
+<td><code>echo $! &gt; /tmp/xxx.pid</code></td>
+<td>保存后台进程 PID</td>
+<td>后续可用 <code>kill $(cat /tmp/xxx.pid)</code> 停止服务</td>
+</tr>
+</tbody></table>
+<p>启动成功日志：</p>
+<figure class="highlight text"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line">Resolved architecture: Qwen3_5MoeForConditionalGeneration</span><br><span class="line">Using max model len 131072</span><br><span class="line">Model loading took 33.38 GiB memory and 269.21 seconds</span><br><span class="line">Available KV cache memory: 74.67 GiB</span><br><span class="line">GPU KV cache size: 3,795,968 tokens</span><br><span class="line">Maximum concurrency for 131,072 tokens per request: 28.96x</span><br></pre></td></tr></table></figure>
+
+<p>注意：这个模型启动后的主机内存占用非常高，测试前后可用内存最低只有约 3.6-6.2GiB，并出现过 swap 使用约 3.3GiB。因此不建议继续做 64K&#x2F;128K 多人并发压测。</p>
+<p>测试结果摘要：</p>
+<table>
+<thead>
+<tr>
+<th>场景</th>
+<th>成功 &#x2F; 失败</th>
+<th>Mean TTFT</th>
+<th>Mean TPOT</th>
+<th>输出吞吐</th>
+<th>结论</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>512 输入 &#x2F; 256 输出 &#x2F; 20 请求 &#x2F; 1 RPS</td>
+<td>20 &#x2F; 0</td>
+<td>312ms</td>
+<td>68ms</td>
+<td>146 tok&#x2F;s</td>
+<td>短上下文体验好</td>
+</tr>
+<tr>
+<td>2048 输入 &#x2F; 512 输出 &#x2F; 20 请求 &#x2F; 1 RPS</td>
+<td>20 &#x2F; 0</td>
+<td>755ms</td>
+<td>90ms</td>
+<td>165 tok&#x2F;s</td>
+<td>中等代码上下文可用</td>
+</tr>
+<tr>
+<td>2048 输入 &#x2F; 512 输出 &#x2F; 30 请求 &#x2F; 3 RPS</td>
+<td>30 &#x2F; 0</td>
+<td>1.64s</td>
+<td>121ms</td>
+<td>221 tok&#x2F;s</td>
+<td>多人中等上下文可稳定跑完</td>
+</tr>
+<tr>
+<td>14336 输入 &#x2F; 1024 输出 &#x2F; 3 请求 &#x2F; 0.1 RPS</td>
+<td>3 &#x2F; 0</td>
+<td>2.71s</td>
+<td>29ms</td>
+<td>51 tok&#x2F;s</td>
+<td>16K 可用</td>
+</tr>
+<tr>
+<td>28672 输入 &#x2F; 1024 输出 &#x2F; 1 请求 &#x2F; 0.05 RPS</td>
+<td>1 &#x2F; 0</td>
+<td>5.64s</td>
+<td>21ms</td>
+<td>21.6 tok&#x2F;s</td>
+<td>32K 单请求可用</td>
+</tr>
+<tr>
+<td>57344 输入 &#x2F; 2048 输出 &#x2F; 1 请求 &#x2F; 0.02 RPS</td>
+<td>1 &#x2F; 0</td>
+<td>13.2s</td>
+<td>24ms</td>
+<td>18.2 tok&#x2F;s</td>
+<td>64K 单请求可用</td>
+</tr>
+<tr>
+<td>122880 输入 &#x2F; 1024 输出 &#x2F; 1 请求 &#x2F; 0.01 RPS</td>
+<td>1 &#x2F; 0</td>
+<td>37.6s</td>
+<td>30ms</td>
+<td>6.1 tok&#x2F;s</td>
+<td>近 128K 单请求可用，但首 token 等待很长</td>
+</tr>
+</tbody></table>
+<h3 id="5-2-启动-Qwen3-6-27B-FP8"><a href="#5-2-启动-Qwen3-6-27B-FP8" class="headerlink" title="5.2 启动 Qwen3.6-27B-FP8"></a>5.2 启动 Qwen3.6-27B-FP8</h3><figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br></pre></td><td class="code"><pre><span class="line"><span class="built_in">source</span> ~/.venv/bin/activate</span><br><span class="line"></span><br><span class="line">vllm serve ~/.cache/huggingface/models/Qwen3.6-27B-FP8 \</span><br><span class="line">  --host 0.0.0.0 \</span><br><span class="line">  --port 8000 \</span><br><span class="line">  --tensor-parallel-size 1 \</span><br><span class="line">  --max-model-len 131072 \</span><br><span class="line">  --reasoning-parser qwen3 \</span><br><span class="line">  --language-model-only \</span><br><span class="line">  --served-model-name Qwen3.6-27B-FP8</span><br></pre></td></tr></table></figure>
+
+<p>启动成功日志：</p>
+<figure class="highlight text"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line">Resolved architecture: Qwen3_5ForConditionalGeneration</span><br><span class="line">Using max model len 131072</span><br><span class="line">Model loading took 27.64 GiB memory and 203.50 seconds</span><br><span class="line">Available KV cache memory: 77.69 GiB</span><br><span class="line">GPU KV cache size: 1,244,034 tokens</span><br><span class="line">Maximum concurrency for 131,072 tokens per request: 9.49x</span><br></pre></td></tr></table></figure>
+
+<p>测试结果摘要：</p>
+<table>
+<thead>
+<tr>
+<th>场景</th>
+<th>成功 &#x2F; 失败</th>
+<th>Mean TTFT</th>
+<th>Mean TPOT</th>
+<th>输出吞吐</th>
+<th>结论</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>512 输入 &#x2F; 256 输出 &#x2F; 20 请求 &#x2F; 1 RPS</td>
+<td>20 &#x2F; 0</td>
+<td>2.40s</td>
+<td>165ms</td>
+<td>86 tok&#x2F;s</td>
+<td>短上下文交互速度不理想</td>
+</tr>
+<tr>
+<td>2048 输入 &#x2F; 512 输出 &#x2F; 20 请求 &#x2F; 1 RPS</td>
+<td>20 &#x2F; 0</td>
+<td>3.69s</td>
+<td>180ms</td>
+<td>95 tok&#x2F;s</td>
+<td>中等上下文可跑，但慢</td>
+</tr>
+<tr>
+<td>14336 输入 &#x2F; 1024 输出 &#x2F; 3 请求 &#x2F; 0.1 RPS</td>
+<td>3 &#x2F; 0</td>
+<td>7.83s</td>
+<td>145ms</td>
+<td>17 tok&#x2F;s</td>
+<td>16K 可跑但慢</td>
+</tr>
+<tr>
+<td>122880 输入 &#x2F; 1024 输出 &#x2F; 1 请求 &#x2F; 0.01 RPS</td>
+<td>1 &#x2F; 0</td>
+<td>100s</td>
+<td>160ms</td>
+<td>2.8 tok&#x2F;s</td>
+<td>近 128K 可跑，但不适合作为默认模型</td>
+</tr>
+</tbody></table>
+<h3 id="5-3-启动-Qwen3-5-35B-A3B"><a href="#5-3-启动-Qwen3-5-35B-A3B" class="headerlink" title="5.3 启动 Qwen3.5-35B-A3B"></a>5.3 启动 Qwen3.5-35B-A3B</h3><p>这个模型不是 FP8，权重占用约 64.69GiB，KV cache 只剩约 3.91GiB。默认 MoE backend 容易遇到 FlashInfer JIT 被 kill 或 Mamba cache blocks 不足的问题，需要使用保守参数。</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br></pre></td><td class="code"><pre><span class="line"><span class="built_in">source</span> ~/.venv/bin/activate</span><br><span class="line"></span><br><span class="line">vllm serve ~/.cache/huggingface/models/Qwen3.5-35B-A3B \</span><br><span class="line">  --host 0.0.0.0 \</span><br><span class="line">  --port 8000 \</span><br><span class="line">  --tensor-parallel-size 1 \</span><br><span class="line">  --max-model-len 8192 \</span><br><span class="line">  --reasoning-parser qwen3 \</span><br><span class="line">  --language-model-only \</span><br><span class="line">  --served-model-name Qwen3.5-35B-A3B \</span><br><span class="line">  --gpu-memory-utilization 0.60 \</span><br><span class="line">  --moe-backend triton \</span><br><span class="line">  --max-num-seqs 128</span><br></pre></td></tr></table></figure>
+
+<p>启动成功日志：</p>
+<figure class="highlight text"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">Model loading took 64.69 GiB memory and 91.50 seconds</span><br><span class="line">Available KV cache memory: 3.91 GiB</span><br><span class="line">GPU KV cache size: 143,732 tokens</span><br><span class="line">Maximum concurrency for 8,192 tokens per request: 17.55x</span><br></pre></td></tr></table></figure>
+
+<p>测试结果摘要：</p>
+<table>
+<thead>
+<tr>
+<th>场景</th>
+<th>成功 &#x2F; 失败</th>
+<th>Mean TTFT</th>
+<th>Mean TPOT</th>
+<th>输出吞吐</th>
+<th>结论</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>512 输入 &#x2F; 256 输出 &#x2F; 20 请求 &#x2F; 1 RPS</td>
+<td>20 &#x2F; 0</td>
+<td>628ms</td>
+<td>131ms</td>
+<td>102 tok&#x2F;s</td>
+<td>可用</td>
+</tr>
+<tr>
+<td>2048 输入 &#x2F; 512 输出 &#x2F; 20 请求 &#x2F; 1 RPS</td>
+<td>20 &#x2F; 0</td>
+<td>1.12s</td>
+<td>150ms</td>
+<td>110 tok&#x2F;s</td>
+<td>可用，但不快</td>
+</tr>
+<tr>
+<td>7168 输入 &#x2F; 512 输出 &#x2F; 5 请求 &#x2F; 0.2 RPS</td>
+<td>5 &#x2F; 0</td>
+<td>1.91s</td>
+<td>66ms</td>
+<td>44 tok&#x2F;s</td>
+<td>8K 内可作为质量对照</td>
+</tr>
+</tbody></table>
+<h2 id="6-API-连通性测试"><a href="#6-API-连通性测试" class="headerlink" title="6. API 连通性测试"></a>6. API 连通性测试</h2><h3 id="6-1-查看模型列表"><a href="#6-1-查看模型列表" class="headerlink" title="6.1 查看模型列表"></a>6.1 查看模型列表</h3><figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">curl http://localhost:8000/v1/models</span><br></pre></td></tr></table></figure>
+
+<p>如果从局域网其他机器访问，把 <code>localhost</code> 换成 DGX 的 IP，例如：</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">curl http://192.168.50.75:8000/v1/models</span><br></pre></td></tr></table></figure>
+
+<h3 id="6-2-Chat-Completions-测试"><a href="#6-2-Chat-Completions-测试" class="headerlink" title="6.2 Chat Completions 测试"></a>6.2 Chat Completions 测试</h3><figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br></pre></td><td class="code"><pre><span class="line">curl http://localhost:8000/v1/chat/completions \</span><br><span class="line">  -H <span class="string">&quot;Content-Type: application/json&quot;</span> \</span><br><span class="line">  -d <span class="string">&#x27;&#123;</span></span><br><span class="line"><span class="string">    &quot;model&quot;: &quot;Qwen3-Coder-30B-A3B-Instruct-FP8&quot;,</span></span><br><span class="line"><span class="string">    &quot;messages&quot;: [</span></span><br><span class="line"><span class="string">      &#123;</span></span><br><span class="line"><span class="string">        &quot;role&quot;: &quot;user&quot;,</span></span><br><span class="line"><span class="string">        &quot;content&quot;: &quot;用 Python 写一个快速排序，并解释时间复杂度&quot;</span></span><br><span class="line"><span class="string">      &#125;</span></span><br><span class="line"><span class="string">    ],</span></span><br><span class="line"><span class="string">    &quot;max_tokens&quot;: 1000,</span></span><br><span class="line"><span class="string">    &quot;temperature&quot;: 0.2</span></span><br><span class="line"><span class="string">  &#125;&#x27;</span></span><br></pre></td></tr></table></figure>
+
+<p>请求参数说明：</p>
+<table>
+<thead>
+<tr>
+<th>参数</th>
+<th>含义</th>
+<th>影响</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><code>/v1/chat/completions</code></td>
+<td>OpenAI 兼容聊天接口</td>
+<td>Cline、Roo Code、Continue、OpenAI SDK 等可以接这个接口</td>
+</tr>
+<tr>
+<td><code>Content-Type: application/json</code></td>
+<td>请求体格式</td>
+<td>必须设置，否则服务端可能无法解析 JSON</td>
+</tr>
+<tr>
+<td><code>model</code></td>
+<td>请求使用的模型名</td>
+<td>必须等于启动时的 <code>--served-model-name</code></td>
+</tr>
+<tr>
+<td><code>messages</code></td>
+<td>聊天上下文</td>
+<td>包含 system&#x2F;user&#x2F;assistant 消息；内容越长，prefill 越慢，TTFT 越高</td>
+</tr>
+<tr>
+<td><code>role</code></td>
+<td>消息角色</td>
+<td><code>system</code> 适合放全局指令，<code>user</code> 放用户问题，<code>assistant</code> 放历史回答</td>
+</tr>
+<tr>
+<td><code>content</code></td>
+<td>消息文本</td>
+<td>计入输入 tokens，占用上下文窗口</td>
+</tr>
+<tr>
+<td><code>max_tokens</code></td>
+<td>最大生成 tokens</td>
+<td>输出上限；越大，总耗时和显存占用越高</td>
+</tr>
+<tr>
+<td><code>temperature</code></td>
+<td>采样随机性</td>
+<td>越低越稳定、越确定；代码生成建议 <code>0.1-0.3</code></td>
+</tr>
+</tbody></table>
+<h3 id="6-3-Python-SDK-测试"><a href="#6-3-Python-SDK-测试" class="headerlink" title="6.3 Python SDK 测试"></a>6.3 Python SDK 测试</h3><figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">from</span> openai <span class="keyword">import</span> OpenAI</span><br><span class="line"></span><br><span class="line">client = OpenAI(</span><br><span class="line">    base_url=<span class="string">&quot;http://192.168.50.75:8000/v1&quot;</span>,</span><br><span class="line">    api_key=<span class="string">&quot;EMPTY&quot;</span>,</span><br><span class="line">)</span><br><span class="line"></span><br><span class="line">resp = client.chat.completions.create(</span><br><span class="line">    model=<span class="string">&quot;Qwen3-Coder-30B-A3B-Instruct-FP8&quot;</span>,</span><br><span class="line">    messages=[</span><br><span class="line">        &#123;</span><br><span class="line">            <span class="string">&quot;role&quot;</span>: <span class="string">&quot;system&quot;</span>,</span><br><span class="line">            <span class="string">&quot;content&quot;</span>: <span class="string">&quot;You are an expert coding assistant. Return concise and correct code.&quot;</span>,</span><br><span class="line">        &#125;,</span><br><span class="line">        &#123;</span><br><span class="line">            <span class="string">&quot;role&quot;</span>: <span class="string">&quot;user&quot;</span>,</span><br><span class="line">            <span class="string">&quot;content&quot;</span>: <span class="string">&quot;Write a Python quicksort implementation with type hints and assert tests.&quot;</span>,</span><br><span class="line">        &#125;,</span><br><span class="line">    ],</span><br><span class="line">    temperature=<span class="number">0.2</span>,</span><br><span class="line">    max_tokens=<span class="number">1024</span>,</span><br><span class="line">)</span><br><span class="line"></span><br><span class="line"><span class="built_in">print</span>(resp.choices[<span class="number">0</span>].message.content)</span><br></pre></td></tr></table></figure>
+
+<p>Python 参数说明：</p>
+<table>
+<thead>
+<tr>
+<th>参数</th>
+<th>含义</th>
+<th>影响</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><code>base_url</code></td>
+<td>OpenAI 兼容服务地址</td>
+<td>本机用 <code>http://localhost:8000/v1</code>，局域网机器用 DGX IP</td>
+</tr>
+<tr>
+<td><code>api_key=&quot;EMPTY&quot;</code></td>
+<td>占位 API key</td>
+<td>vLLM 默认不校验 key，但 OpenAI SDK 要求传入</td>
+</tr>
+<tr>
+<td><code>client.chat.completions.create</code></td>
+<td>调用聊天补全接口</td>
+<td>和 curl 的 <code>/v1/chat/completions</code> 等价</td>
+</tr>
+</tbody></table>
+<h3 id="6-4-opencode-局域网接入"><a href="#6-4-opencode-局域网接入" class="headerlink" title="6.4 opencode 局域网接入"></a>6.4 opencode 局域网接入</h3><p>本地电脑上的 opencode 可以通过局域网连接 DGX 上的 vLLM OpenAI 兼容接口。例如 DGX 地址是 <code>192.168.50.75</code>，服务端口是 <code>8000</code>，则 opencode 侧模型服务地址应指向：</p>
+<figure class="highlight text"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">http://192.168.50.75:8000/v1</span><br></pre></td></tr></table></figure>
+
+<p>DGX 启动 <code>Qwen3.6-35B-A3B-FP8</code> 时，需要加上工具调用相关参数：</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br></pre></td><td class="code"><pre><span class="line"><span class="built_in">source</span> ~/.venv/bin/activate</span><br><span class="line"></span><br><span class="line">vllm serve ~/.cache/huggingface/models/Qwen3.6-35B-A3B-FP8 \</span><br><span class="line">  --host 0.0.0.0 \</span><br><span class="line">  --port 8000 \</span><br><span class="line">  --tensor-parallel-size 1 \</span><br><span class="line">  --max-model-len 131072 \</span><br><span class="line">  --reasoning-parser qwen3 \</span><br><span class="line">  --language-model-only \</span><br><span class="line">  --enable-auto-tool-choice \</span><br><span class="line">  --tool-call-parser qwen3_coder \</span><br><span class="line">  --served-model-name Qwen3.6-35B-A3B-FP8</span><br></pre></td></tr></table></figure>
+
+<p>实测结论：</p>
+<table>
+<thead>
+<tr>
+<th>项目</th>
+<th>结论</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><code>--enable-auto-tool-choice</code></td>
+<td>必须加。opencode 会使用工具调用协议，不开启自动工具选择会影响 Agent 调用工具的行为</td>
+</tr>
+<tr>
+<td><code>--tool-call-parser qwen3_coder</code></td>
+<td>必须使用这个 parser。它能正确解析 Qwen3 系列工具调用输出</td>
+</tr>
+<tr>
+<td><code>--tool-call-parser hermes</code></td>
+<td>不适合这里。实测 opencode 会没什么输出</td>
+</tr>
+<tr>
+<td><code>--host 0.0.0.0</code></td>
+<td>必须监听所有网卡，否则局域网电脑无法访问</td>
+</tr>
+<tr>
+<td><code>--port 8000</code></td>
+<td>opencode 侧 base URL 要和这个端口一致</td>
+</tr>
+</tbody></table>
+<p>一次 opencode 任务日志观察：本地电脑 <code>192.168.50.52</code> 通过局域网请求 DGX，让模型写一个一维有限元算法程序。服务端多次出现：</p>
+<figure class="highlight text"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">192.168.50.52:&lt;port&gt; - &quot;POST /v1/chat/completions HTTP/1.1&quot; 200 OK</span><br></pre></td></tr></table></figure>
+
+<p>这说明 opencode 到 DGX 的 OpenAI 兼容接口连通正常，HTTP 请求都成功返回。日志里的推理状态大致如下：</p>
+<table>
+<thead>
+<tr>
+<th>日志项</th>
+<th>观察结果</th>
+<th>解读</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><code>Running</code></td>
+<td>多数时间为 0 或 1</td>
+<td>这是单个 opencode Agent 任务，没有形成多人并发压力</td>
+</tr>
+<tr>
+<td><code>Waiting</code></td>
+<td>一直为 0</td>
+<td>没有排队，服务端当前处理能力够用</td>
+</tr>
+<tr>
+<td><code>GPU KV cache usage</code></td>
+<td>约 0.0%-0.9%</td>
+<td>KV cache 压力非常低，这次不是上下文容量瓶颈</td>
+</tr>
+<tr>
+<td><code>Prefix cache hit rate</code></td>
+<td>0.0%</td>
+<td>本轮请求没有命中前缀缓存；opencode 多轮工具调用的 prompt 可能变化较多</td>
+</tr>
+<tr>
+<td><code>Avg prompt throughput</code></td>
+<td>约 56-3192 tokens&#x2F;s，后期多次到 2500-3100 tokens&#x2F;s</td>
+<td>prefill 能跑起来，且上下文没有压满</td>
+</tr>
+<tr>
+<td><code>Avg generation throughput</code></td>
+<td>约 4-55 tokens&#x2F;s 波动</td>
+<td>工具调用和短输出片段会让瞬时吞吐波动，不能只按单条日志判断模型整体速度</td>
+</tr>
+</tbody></table>
+<p>日志中还出现了几类 Triton JIT warning：</p>
+<figure class="highlight text"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line">Triton kernel JIT compilation during inference: _zero_kv_blocks_kernel</span><br><span class="line">Triton kernel JIT compilation during inference: _compute_slot_mapping_kernel</span><br><span class="line">Triton kernel JIT compilation during inference: _causal_conv1d_fwd_kernel</span><br><span class="line">Triton kernel JIT compilation during inference: _fused_post_conv_kernel</span><br><span class="line">Triton kernel JIT compilation during inference: fused_moe_kernel</span><br></pre></td></tr></table></figure>
+
+<p>这些 warning 的含义是：某些 Triton kernel 在实际推理过程中才第一次编译，会造成当次请求的延迟尖刺。它不是接口失败，也不是模型输出错误。更稳的做法是服务启动后先做几轮 warmup，覆盖 opencode 常见的 prompt 长度、工具调用形态和输出长度，减少正式使用时的 JIT 编译抖动。</p>
+<p>这段日志的整体判断：</p>
+<figure class="highlight text"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line">opencode -&gt; DGX -&gt; vLLM 的链路是通的。</span><br><span class="line">Qwen3.6-35B-A3B-FP8 可以处理 opencode 的工具调用工作流。</span><br><span class="line">本次任务没有排队，也没有 KV cache 压力。</span><br><span class="line">主要需要注意首次或新形状请求触发 Triton JIT，可能带来短时延迟尖刺。</span><br><span class="line">tool-call-parser 必须用 qwen3_coder，不能用 hermes。</span><br></pre></td></tr></table></figure>
+
+<h2 id="7-Benchmark-压测"><a href="#7-Benchmark-压测" class="headerlink" title="7. Benchmark 压测"></a>7. Benchmark 压测</h2><p>压测前先启动模型服务，然后另开一个 shell 执行 benchmark。</p>
+<h3 id="7-1-短上下文基线"><a href="#7-1-短上下文基线" class="headerlink" title="7.1 短上下文基线"></a>7.1 短上下文基线</h3><figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br></pre></td><td class="code"><pre><span class="line">docker run --<span class="built_in">rm</span> --gpus all --network host \</span><br><span class="line">  -e HF_HUB_OFFLINE=1 \</span><br><span class="line">  -e TRANSFORMERS_OFFLINE=1 \</span><br><span class="line">  -v ~/.cache/huggingface:/root/.cache/huggingface \</span><br><span class="line">  nvcr.io/nvidia/vllm:26.01-py3 \</span><br><span class="line">  bash -lc <span class="string">&#x27;vllm bench serve \</span></span><br><span class="line"><span class="string">    --backend openai \</span></span><br><span class="line"><span class="string">    --base-url http://localhost:8000 \</span></span><br><span class="line"><span class="string">    --endpoint /v1/completions \</span></span><br><span class="line"><span class="string">    --model Qwen3-Coder-30B-A3B-Instruct-FP8 \</span></span><br><span class="line"><span class="string">    --tokenizer /root/.cache/huggingface/models/Qwen3-Coder-30B-A3B-Instruct-FP8 \</span></span><br><span class="line"><span class="string">    --num-prompts 20 \</span></span><br><span class="line"><span class="string">    --request-rate 1 \</span></span><br><span class="line"><span class="string">    --random-input-len 512 \</span></span><br><span class="line"><span class="string">    --random-output-len 256&#x27;</span></span><br></pre></td></tr></table></figure>
+
+<h3 id="7-2-中等代码上下文"><a href="#7-2-中等代码上下文" class="headerlink" title="7.2 中等代码上下文"></a>7.2 中等代码上下文</h3><figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br></pre></td><td class="code"><pre><span class="line">docker run --<span class="built_in">rm</span> --gpus all --network host \</span><br><span class="line">  -e HF_HUB_OFFLINE=1 \</span><br><span class="line">  -e TRANSFORMERS_OFFLINE=1 \</span><br><span class="line">  -v ~/.cache/huggingface:/root/.cache/huggingface \</span><br><span class="line">  nvcr.io/nvidia/vllm:26.01-py3 \</span><br><span class="line">  bash -lc <span class="string">&#x27;vllm bench serve \</span></span><br><span class="line"><span class="string">    --backend openai \</span></span><br><span class="line"><span class="string">    --base-url http://localhost:8000 \</span></span><br><span class="line"><span class="string">    --endpoint /v1/completions \</span></span><br><span class="line"><span class="string">    --model Qwen3-Coder-30B-A3B-Instruct-FP8 \</span></span><br><span class="line"><span class="string">    --tokenizer /root/.cache/huggingface/models/Qwen3-Coder-30B-A3B-Instruct-FP8 \</span></span><br><span class="line"><span class="string">    --num-prompts 20 \</span></span><br><span class="line"><span class="string">    --request-rate 1 \</span></span><br><span class="line"><span class="string">    --random-input-len 2048 \</span></span><br><span class="line"><span class="string">    --random-output-len 512&#x27;</span></span><br></pre></td></tr></table></figure>
+
+<h3 id="7-3-多人并发"><a href="#7-3-多人并发" class="headerlink" title="7.3 多人并发"></a>7.3 多人并发</h3><figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br></pre></td><td class="code"><pre><span class="line">docker run --<span class="built_in">rm</span> --gpus all --network host \</span><br><span class="line">  -e HF_HUB_OFFLINE=1 \</span><br><span class="line">  -e TRANSFORMERS_OFFLINE=1 \</span><br><span class="line">  -v ~/.cache/huggingface:/root/.cache/huggingface \</span><br><span class="line">  nvcr.io/nvidia/vllm:26.01-py3 \</span><br><span class="line">  bash -lc <span class="string">&#x27;vllm bench serve \</span></span><br><span class="line"><span class="string">    --backend openai \</span></span><br><span class="line"><span class="string">    --base-url http://localhost:8000 \</span></span><br><span class="line"><span class="string">    --endpoint /v1/completions \</span></span><br><span class="line"><span class="string">    --model Qwen3-Coder-Next-FP8 \</span></span><br><span class="line"><span class="string">    --tokenizer /root/.cache/huggingface/models/Qwen3-Coder-Next-FP8 \</span></span><br><span class="line"><span class="string">    --num-prompts 50 \</span></span><br><span class="line"><span class="string">    --request-rate 4 \</span></span><br><span class="line"><span class="string">    --random-input-len 2048 \</span></span><br><span class="line"><span class="string">    --random-output-len 512&#x27;</span></span><br></pre></td></tr></table></figure>
+
+<h3 id="7-4-16K-长上下文"><a href="#7-4-16K-长上下文" class="headerlink" title="7.4 16K 长上下文"></a>7.4 16K 长上下文</h3><figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br></pre></td><td class="code"><pre><span class="line">docker run --<span class="built_in">rm</span> --gpus all --network host \</span><br><span class="line">  -e HF_HUB_OFFLINE=1 \</span><br><span class="line">  -e TRANSFORMERS_OFFLINE=1 \</span><br><span class="line">  -v ~/.cache/huggingface:/root/.cache/huggingface \</span><br><span class="line">  nvcr.io/nvidia/vllm:26.01-py3 \</span><br><span class="line">  bash -lc <span class="string">&#x27;vllm bench serve \</span></span><br><span class="line"><span class="string">    --backend openai \</span></span><br><span class="line"><span class="string">    --base-url http://localhost:8000 \</span></span><br><span class="line"><span class="string">    --endpoint /v1/completions \</span></span><br><span class="line"><span class="string">    --model Qwen3-Coder-Next-FP8 \</span></span><br><span class="line"><span class="string">    --tokenizer /root/.cache/huggingface/models/Qwen3-Coder-Next-FP8 \</span></span><br><span class="line"><span class="string">    --num-prompts 3 \</span></span><br><span class="line"><span class="string">    --request-rate 0.1 \</span></span><br><span class="line"><span class="string">    --random-input-len 14336 \</span></span><br><span class="line"><span class="string">    --random-output-len 1024&#x27;</span></span><br></pre></td></tr></table></figure>
+
+<h3 id="7-5-Benchmark-参数说明"><a href="#7-5-Benchmark-参数说明" class="headerlink" title="7.5 Benchmark 参数说明"></a>7.5 Benchmark 参数说明</h3><table>
+<thead>
+<tr>
+<th>参数</th>
+<th>含义</th>
+<th>影响</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><code>vllm bench serve</code></td>
+<td>vLLM 的服务端压测工具</td>
+<td>对已经运行的 OpenAI 兼容服务发请求</td>
+</tr>
+<tr>
+<td><code>--backend openai</code></td>
+<td>使用 OpenAI 兼容协议</td>
+<td>对应 vLLM 的 <code>/v1</code> 接口</td>
+</tr>
+<tr>
+<td><code>--base-url</code></td>
+<td>服务基础地址</td>
+<td>本机一般是 <code>http://localhost:8000</code></td>
+</tr>
+<tr>
+<td><code>--endpoint</code></td>
+<td>压测接口</td>
+<td><code>/v1/completions</code> 是文本补全接口；聊天应用也可用 chat 接口另测</td>
+</tr>
+<tr>
+<td><code>--model</code></td>
+<td>请求模型名</td>
+<td>必须等于服务启动时的 <code>--served-model-name</code></td>
+</tr>
+<tr>
+<td><code>--tokenizer</code></td>
+<td>tokenizer 路径</td>
+<td>用于生成指定长度的随机输入；应指向同一个模型目录</td>
+</tr>
+<tr>
+<td><code>--num-prompts</code></td>
+<td>总请求数</td>
+<td>越大越接近真实负载；也会让压测耗时更长</td>
+</tr>
+<tr>
+<td><code>--request-rate</code></td>
+<td>请求注入速率，单位 RPS</td>
+<td>越高越容易形成排队；实际完成速率可能远低于注入速率</td>
+</tr>
+<tr>
+<td><code>--random-input-len</code></td>
+<td>每个请求的输入 token 长度</td>
+<td>越大 prefill 越慢，TTFT 越高，KV cache 占用越大</td>
+</tr>
+<tr>
+<td><code>--random-output-len</code></td>
+<td>每个请求的输出 token 长度</td>
+<td>越大 decode 时间越长，总耗时越高</td>
+</tr>
+</tbody></table>
+<p><code>--random-input-len + --random-output-len</code> 必须小于或等于服务启动时的 <code>--max-model-len</code>。例如输入 14336、输出 1024，总计 15360，需要 <code>--max-model-len</code> 至少 16384。</p>
+<h3 id="7-6-压测指标说明"><a href="#7-6-压测指标说明" class="headerlink" title="7.6 压测指标说明"></a>7.6 压测指标说明</h3><table>
+<thead>
+<tr>
+<th>指标</th>
+<th>含义</th>
+<th>怎么看</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><code>Successful requests</code></td>
+<td>成功请求数</td>
+<td>应等于 <code>--num-prompts</code></td>
+</tr>
+<tr>
+<td><code>Failed requests</code></td>
+<td>失败请求数</td>
+<td>应为 0；非 0 要看是否超上下文、OOM、服务断开</td>
+</tr>
+<tr>
+<td><code>Benchmark duration</code></td>
+<td>压测总耗时</td>
+<td>用于判断整体完成时间</td>
+</tr>
+<tr>
+<td><code>Request throughput</code></td>
+<td>实际完成请求速率</td>
+<td>不一定等于 <code>--request-rate</code>，模型慢时会低很多</td>
+</tr>
+<tr>
+<td><code>Output token throughput</code></td>
+<td>总输出 token 吞吐</td>
+<td>代表服务整体生成能力</td>
+</tr>
+<tr>
+<td><code>Peak output token throughput</code></td>
+<td>峰值输出吞吐</td>
+<td>看短时间最高生成能力</td>
+</tr>
+<tr>
+<td><code>Peak concurrent requests</code></td>
+<td>峰值并发请求数</td>
+<td>反映 vLLM 批处理调度情况</td>
+</tr>
+<tr>
+<td><code>Mean TTFT</code></td>
+<td>平均首 token 延迟</td>
+<td>影响用户等待第一段回答的体验</td>
+</tr>
+<tr>
+<td><code>P99 TTFT</code></td>
+<td>最慢 1% 首 token 延迟</td>
+<td>看尾延迟；多人并发时尤其重要</td>
+</tr>
+<tr>
+<td><code>Mean TPOT</code></td>
+<td>后续每个 token 平均耗时</td>
+<td>越低，生成速度越快</td>
+</tr>
+<tr>
+<td><code>P99 TPOT</code></td>
+<td>最慢 1% 后续 token 耗时</td>
+<td>看生成阶段稳定性</td>
+</tr>
+</tbody></table>
+<p>服务端日志也要同时观察：</p>
+<table>
+<thead>
+<tr>
+<th>日志字段</th>
+<th>含义</th>
+<th>判断方式</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><code>Running</code></td>
+<td>正在运行的请求数</td>
+<td>长时间很高说明服务在持续消化请求</td>
+</tr>
+<tr>
+<td><code>Waiting</code></td>
+<td>排队等待的请求数</td>
+<td>持续大于 0 说明注入压力超过服务处理能力</td>
+</tr>
+<tr>
+<td><code>GPU KV cache usage</code></td>
+<td>KV cache 使用率</td>
+<td>高到接近满时会限制长上下文和并发</td>
+</tr>
+<tr>
+<td><code>Avg generation throughput</code></td>
+<td>平均生成吞吐</td>
+<td>看 decode 阶段整体 token&#x2F;s</td>
+</tr>
+</tbody></table>
+<h3 id="7-7-真实-Agent-任务测试：一维-FEM-程序"><a href="#7-7-真实-Agent-任务测试：一维-FEM-程序" class="headerlink" title="7.7 真实 Agent 任务测试：一维 FEM 程序"></a>7.7 真实 Agent 任务测试：一维 FEM 程序</h3><p>除了合成 benchmark，还做过一次更接近真实开发场景的测试：本地电脑上的 opencode 通过局域网连接 DGX 上的 <code>Qwen3.6-35B-A3B-FP8</code>，让模型编写和多轮修复一个一维有限元算法程序 <code>fem_1d.py</code>。随后使用 Codex 对程序做审查、构造反例测试、指出不足，再让 opencode 根据这些反馈继续修复。</p>
+<p>相关记录文件：</p>
+<table>
+<thead>
+<tr>
+<th>文件</th>
+<th>内容</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><code>对话记录.md</code></td>
+<td>opencode 生成和修复 <code>fem_1d.py</code> 的过程摘要</td>
+</tr>
+<tr>
+<td><code>conversation_history_codex.md</code></td>
+<td>Codex 对 <code>fem_1d.py</code> 的审查、测试和问题定位</td>
+</tr>
+<tr>
+<td><code>historyChat.md</code></td>
+<td>opencode 根据问题反馈修复非零边界、非法区间、非法单元数等问题的记录</td>
+</tr>
+<tr>
+<td><code>fem_1d.py</code></td>
+<td>多轮修复后的最终一维 FEM 程序</td>
+</tr>
+</tbody></table>
+<p>任务特点：</p>
+<figure class="highlight text"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line">任务类型：代码生成 + 数值算法调试 + 多轮修复</span><br><span class="line">模型服务：DGX 上的 Qwen3.6-35B-A3B-FP8</span><br><span class="line">客户端：本地电脑 opencode，通过局域网访问 /v1/chat/completions</span><br><span class="line">接口能力：需要启用 tool calling，启动参数必须包含 --enable-auto-tool-choice 和 --tool-call-parser qwen3_coder</span><br><span class="line">上下文压力：64K 上下文经过两次上下文压缩后仍然完成任务</span><br><span class="line">最终产物：fem_1d.py，一维线性有限元 Poisson 方程求解器</span><br></pre></td></tr></table></figure>
+
+<p>最终程序包含的主要模块：</p>
+<table>
+<thead>
+<tr>
+<th>函数 &#x2F; 结构</th>
+<th>功能</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><code>FEMResult</code></td>
+<td>保存插值解、节点解、网格等结果</td>
+</tr>
+<tr>
+<td><code>element_stiffness(h)</code></td>
+<td>计算线性单元刚度矩阵 <code>(1/h) * [[1, -1], [-1, 1]]</code></td>
+</tr>
+<tr>
+<td><code>element_load(f, h, a)</code></td>
+<td>使用 2 点 Gauss 积分计算单元载荷，并正确做参考坐标到物理坐标的映射</td>
+</tr>
+<tr>
+<td><code>assemble(mesh, f)</code></td>
+<td>组装全局刚度矩阵和载荷向量</td>
+</tr>
+<tr>
+<td><code>apply_bc(K, F, bcs)</code></td>
+<td>施加 Dirichlet 边界条件，并修正非零边界值对右端项的贡献</td>
+</tr>
+<tr>
+<td><code>evaluate_at_points(...)</code></td>
+<td>将节点解插值到密集采样点</td>
+</tr>
+<tr>
+<td><code>compute_errors(...)</code></td>
+<td>计算 <code>L2</code> 和 <code>Linf</code> 误差</td>
+</tr>
+<tr>
+<td><code>solve_1d_poisson(...)</code></td>
+<td>求解 <code>-u&#39;&#39; = f(x)</code>，支持自定义区间、单元数、左右 Dirichlet 边界值和自定义线性求解器</td>
+</tr>
+</tbody></table>
+<p>多轮修复中暴露和解决的问题：</p>
+<table>
+<thead>
+<tr>
+<th>问题</th>
+<th>表现</th>
+<th>修复结果</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>单元载荷坐标映射错误</td>
+<td>网格加密后误差反而增大，收敛率为负</td>
+<td><code>element_load</code> 增加单元左端点 <code>a</code>，正确映射 <code>xg = a + 0.5 * h * (1 + xi)</code></td>
+</tr>
+<tr>
+<td>非零 Dirichlet 边界条件错误</td>
+<td><code>u(0)=1, u(1)=2</code> 这类问题内部节点值错误</td>
+<td><code>apply_bc</code> 在清零边界列前执行 <code>F[j] -= K[j, idx] * value</code>，把已知边界值贡献转移到自由 DOF</td>
+</tr>
+<tr>
+<td><code>domain=(1.0, 1.0)</code></td>
+<td>产生 <code>nan</code> 和除零警告</td>
+<td>增加 <code>a &lt; b</code> 校验，非法区间抛 <code>ValueError</code></td>
+</tr>
+<tr>
+<td><code>n_elems=0</code></td>
+<td>返回退化网格，物理意义不明确</td>
+<td>增加正整数校验</td>
+</tr>
+<tr>
+<td><code>n_elems=-1</code></td>
+<td>触发 <code>IndexError</code></td>
+<td>统一抛出明确的 <code>ValueError</code></td>
+</tr>
+<tr>
+<td><code>n_elems=4.0</code></td>
+<td>类型语义不清</td>
+<td>拦截非整数单元数</td>
+</tr>
+<tr>
+<td><code>np.trapz</code> 弃用</td>
+<td>后续维护有兼容风险</td>
+<td>改为 <code>np.trapezoid</code></td>
+</tr>
+</tbody></table>
+<p>最终复测环境使用本地 Windows 解释器：</p>
+<figure class="highlight powershell"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">E:\miniconda\envs\AgentTool\python.exe</span><br></pre></td></tr></table></figure>
+
+<p>语法检查通过：</p>
+<figure class="highlight powershell"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">&amp; <span class="string">&#x27;E:\miniconda\envs\AgentTool\python.exe&#x27;</span> <span class="literal">-m</span> py_compile fem_1d.py</span><br></pre></td></tr></table></figure>
+
+<p>内置 demo 复现线性 FEM 理论二阶收敛：</p>
+<figure class="highlight text"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line">    N           h       L2 error   L2 rate     Linf error   Linf rate</span><br><span class="line">---------------------------------------------------------------------</span><br><span class="line">      4    2.50e-01       3.91e-02       --        7.01e-02         --</span><br><span class="line">      8    1.25e-01       9.91e-03      1.98       1.88e-02        1.90</span><br><span class="line">     16    6.25e-02       2.49e-03      2.00       4.79e-03        1.97</span><br><span class="line">     32    3.12e-02       6.22e-04      2.00       1.20e-03        1.99</span><br><span class="line">     64    1.56e-02       1.56e-04      2.00       3.01e-04        2.00</span><br><span class="line">    128    7.81e-03       3.89e-05      2.00       7.52e-05        2.00</span><br></pre></td></tr></table></figure>
+
+<p>关键反例复测结果：</p>
+<figure class="highlight text"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line">zero_load_nonzero_bc: max_err=0.000e+00</span><br><span class="line">constant_load_nonzero_bc: max_err=0.000e+00</span><br><span class="line">shifted_domain_nonzero_bc: max_err=0.000e+00</span><br><span class="line">n_elems=0: ValueError</span><br><span class="line">n_elems=-1: ValueError</span><br><span class="line">n_elems=4.0: ValueError</span><br><span class="line">domain=(1.0, 1.0): ValueError</span><br><span class="line">domain=(2.0, 1.0): ValueError</span><br></pre></td></tr></table></figure>
+
+<p>这次真实任务的模型表现判断：</p>
+<figure class="highlight text"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line">Qwen3.6-35B-A3B-FP8 能完成多轮代码生成和修复任务。</span><br><span class="line">64K 级上下文在两次压缩后仍能保持任务主线，最终产物可运行并通过数值反例测试。</span><br><span class="line">模型初始生成并非一次正确，数值算法细节仍需要外部审查和反例驱动修复。</span><br><span class="line">Codex 负责评审和构造测试，opencode 负责执行修复，这种“生成-审查-修复”闭环比单次生成更可靠。</span><br><span class="line">对数值算法类任务，不能只看程序能运行，还必须验证解析解、非零边界、非法输入和收敛率。</span><br></pre></td></tr></table></figure>
+
+<h2 id="8-常用调参建议"><a href="#8-常用调参建议" class="headerlink" title="8. 常用调参建议"></a>8. 常用调参建议</h2><h3 id="8-1-只做本机-单人代码-Agent"><a href="#8-1-只做本机-单人代码-Agent" class="headerlink" title="8.1 只做本机 &#x2F; 单人代码 Agent"></a>8.1 只做本机 &#x2F; 单人代码 Agent</h3><figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">--max-model-len 8192</span><br><span class="line">--gpu-memory-utilization 0.75</span><br></pre></td></tr></table></figure>
+
+<p>适合普通代码问答、短文件编辑、低并发。首 token 延迟更低，显存压力更小。</p>
+<h3 id="8-2-中等代码库上下文"><a href="#8-2-中等代码库上下文" class="headerlink" title="8.2 中等代码库上下文"></a>8.2 中等代码库上下文</h3><figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">--max-model-len 16384</span><br><span class="line">--gpu-memory-utilization 0.75</span><br></pre></td></tr></table></figure>
+
+<p>适合 2K-8K 输入、512-1024 输出。需要重点看 TTFT，如果首 token 超过几秒，说明 prefill 已经成为主要瓶颈。</p>
+<h3 id="8-3-长上下文单人任务"><a href="#8-3-长上下文单人任务" class="headerlink" title="8.3 长上下文单人任务"></a>8.3 长上下文单人任务</h3><figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">--max-model-len 65536</span><br><span class="line">--gpu-memory-utilization 0.75</span><br></pre></td></tr></table></figure>
+
+<p>适合大段代码、长日志、长文档总结。不要直接上多人并发，先用 1-3 个请求验证。</p>
+<h3 id="8-4-近-128K-上下文"><a href="#8-4-近-128K-上下文" class="headerlink" title="8.4 近 128K 上下文"></a>8.4 近 128K 上下文</h3><figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">--max-model-len 131072</span><br></pre></td></tr></table></figure>
+
+<p>只建议在已经确认模型能稳定启动后做单请求验证。近 128K 输入会显著增加 prefill 时间，首 token 等待可能达到几十秒甚至更久。即使 KV cache 没打满，计算吞吐也可能成为瓶颈。</p>
+<h3 id="8-5-多人并发"><a href="#8-5-多人并发" class="headerlink" title="8.5 多人并发"></a>8.5 多人并发</h3><p>多人并发不要只看能否跑完，还要看：</p>
+<figure class="highlight text"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line">Mean TTFT</span><br><span class="line">P99 TTFT</span><br><span class="line">Mean TPOT</span><br><span class="line">Waiting</span><br><span class="line">GPU KV cache usage</span><br></pre></td></tr></table></figure>
+
+<p>如果 <code>Waiting</code> 持续大于 0，或者 <code>P99 TTFT</code> 超过 10-20 秒，说明当前模型或参数已经不适合作为多人默认服务。</p>
+<h2 id="9-停止服务和查看日志"><a href="#9-停止服务和查看日志" class="headerlink" title="9. 停止服务和查看日志"></a>9. 停止服务和查看日志</h2><p>Docker 前台启动时，直接在终端按：</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">Ctrl+C</span><br></pre></td></tr></table></figure>
+
+<p>Docker 后台启动时：</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">docker ps</span><br><span class="line">docker logs -f &lt;container_name&gt;</span><br><span class="line">docker stop &lt;container_name&gt;</span><br></pre></td></tr></table></figure>
+
+<p>venv 后台启动时：</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line"><span class="built_in">tail</span> -f /tmp/codex_vllm_qwen36_35b.<span class="built_in">log</span></span><br><span class="line"><span class="built_in">kill</span> $(<span class="built_in">cat</span> /tmp/codex_vllm_qwen36_35b.pid)</span><br></pre></td></tr></table></figure>
+
+<p>如果服务没有保存 PID，可以查进程：</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">ps aux | grep <span class="string">&#x27;vllm serve&#x27;</span></span><br></pre></td></tr></table></figure>
+
+<p>确认端口占用：</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">ss -lntp | grep 8000</span><br></pre></td></tr></table></figure>
+
+<h2 id="10-推荐落地配置"><a href="#10-推荐落地配置" class="headerlink" title="10. 推荐落地配置"></a>10. 推荐落地配置</h2><p>如果只保留一个默认服务，优先使用：</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">Qwen3.6-35B-A3B-FP8</span><br></pre></td></tr></table></figure>
+
+<p>原因是它在短上下文、中等上下文、16K、64K、近 128K 单请求测试中都能跑通，且比 <code>Qwen3.6-27B-FP8</code> 更快。缺点是启动后主机内存占用很高，不建议继续做 64K&#x2F;128K 多人并发。</p>
+<p>如果希望用 Docker 保持部署简单，优先使用：</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">Qwen3-Coder-30B-A3B-Instruct-FP8</span><br></pre></td></tr></table></figure>
+
+<p>它是更稳的日常代码 Agent 默认模型。<code>Qwen3-Coder-Next-FP8</code> 可以作为复杂任务备用模型，但不建议作为多人高并发默认模型。</p>
+</article><div class="post-copyright"><div class="post-copyright__author"><span class="post-copyright-meta"><i class="fas fa-circle-user fa-fw"></i>文章作者: </span><span class="post-copyright-info"><a href="https://zjxtime.top">Jiaxiang Zhou</a></span></div><div class="post-copyright__type"><span class="post-copyright-meta"><i class="fas fa-square-arrow-up-right fa-fw"></i>文章链接: </span><span class="post-copyright-info"><a href="https://zjxtime.top/2026/06/03/dgx-spark-local-vllm/">https://zjxtime.top/2026/06/03/dgx-spark-local-vllm/</a></span></div><div class="post-copyright__notice"><span class="post-copyright-meta"><i class="fas fa-circle-exclamation fa-fw"></i>版权声明: </span><span class="post-copyright-info">本博客所有文章除特别声明外，均采用 <a href="https://creativecommons.org/licenses/by-nc-sa/4.0/" target="_blank">CC BY-NC-SA 4.0</a> 许可协议。转载请注明来源 <a href="https://zjxtime.top" target="_blank">小渣渣Time的Blog</a>！</span></div></div><div class="tag_share"><div class="post-meta__tag-list"><a class="post-meta__tags" href="/tags/Agent/">Agent</a><a class="post-meta__tags" href="/tags/LLM/">LLM</a><a class="post-meta__tags" href="/tags/AI-Infra/">AI Infra</a></div><div class="post-share"><div class="social-share" data-image="/images/dgx-spark-local-vllm/image-20260528152602900-1779953170838-1-1779953175004-3.png" data-sites="facebook,x,wechat,weibo,qq"></div><link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/butterfly-extsrc@1.1.6/sharejs/dist/css/share.min.css" media="print" onload="this.media='all'"><script src="https://cdn.jsdelivr.net/npm/butterfly-extsrc@1.1.6/sharejs/dist/js/social-share.min.js" defer></script></div></div><nav class="pagination-post" id="pagination"><a class="pagination-related full-width no-desc" href="/2026/05/16/pytorch-tensor-autograd/" title="PyTorch学习 1：张量Tensor、计算图、前向传播、反向传播、梯度计算与更新"><img class="cover" src="/images/pytorch-tensor-autograd/DAG_example-1778905120451-2.png" onerror="onerror=null;src='/img/404.jpg'" alt="cover of next post"><div class="info text-right"><div class="info-1"><div class="info-item-1">下一篇</div><div class="info-item-2">PyTorch学习 1：张量Tensor、计算图、前向传播、反向传播、梯度计算与更新</div></div></div></a></nav><hr class="custom-hr"/><div id="post-comment"><div class="comment-head"><div class="comment-headline"><i class="fas fa-comments fa-fw"></i><span> 评论</span></div></div><div class="comment-wrap"><div><div id="giscus-wrap"></div></div></div></div></div><div class="aside-content" id="aside-content"><div class="card-widget card-info text-center"><div class="avatar-img"><img src="/images/touxiang.jpg" onerror="this.onerror=null;this.src='/img/friend_404.gif'" alt="avatar"/></div><div class="author-info-name">Jiaxiang Zhou</div><div class="author-info-description">不期待，不假设，不强求</div><div class="site-data"><a href="/archives/"><div class="headline">文章</div><div class="length-num">3</div></a><a href="/tags/"><div class="headline">标签</div><div class="length-num">10</div></a><a href="/categories/"><div class="headline">分类</div><div class="length-num">3</div></a></div><a id="card-info-btn" href="https://zjxtime.top/"><i class="fas fa-house"></i><span>zjxtime.top</span></a><div class="card-info-social-icons"><a class="social-icon" href="https://github.com/zhoujiaxiang-time" target="_blank" title="GitHub"><i class="fab fa-github" style="color: #24292e;"></i></a></div></div><div class="card-widget card-announcement"><div class="item-headline"><i class="fas fa-bullhorn fa-shake"></i><span>公告</span></div><div class="announcement_content">记录仿真、工程设计和技术学习。</div></div><div class="sticky_layout"><div class="card-widget" id="card-toc"><div class="item-headline"><i class="fas fa-stream"></i><span>目录</span><span class="toc-percentage"></span></div><div class="toc-content"><ol class="toc"><li class="toc-item toc-level-1"><a class="toc-link" href="#DGX-Spark-%E9%83%A8%E7%BD%B2%E6%9C%AC%E5%9C%B0%E6%A8%A1%E5%9E%8B"><span class="toc-number">1.</span> <span class="toc-text">DGX Spark 部署本地模型</span></a><ol class="toc-child"><li class="toc-item toc-level-2"><a class="toc-link" href="#1-%E7%BB%93%E8%AE%BA%E5%92%8C%E6%A8%A1%E5%9E%8B%E9%80%89%E6%8B%A9"><span class="toc-number">1.1.</span> <span class="toc-text">1. 结论和模型选择</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#2-%E7%8E%AF%E5%A2%83%E6%A3%80%E6%9F%A5"><span class="toc-number">1.2.</span> <span class="toc-text">2. 环境检查</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#3-%E4%B8%8B%E8%BD%BD%E6%A8%A1%E5%9E%8B"><span class="toc-number">1.3.</span> <span class="toc-text">3. 下载模型</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#4-%E7%94%A8-Docker-%E5%90%AF%E5%8A%A8-vLLM"><span class="toc-number">1.4.</span> <span class="toc-text">4. 用 Docker 启动 vLLM</span></a><ol class="toc-child"><li class="toc-item toc-level-3"><a class="toc-link" href="#4-1-%E5%90%AF%E5%8A%A8-Qwen3-Coder-30B-A3B-Instruct-FP8"><span class="toc-number">1.4.1.</span> <span class="toc-text">4.1 启动 Qwen3-Coder-30B-A3B-Instruct-FP8</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#4-2-%E5%90%AF%E5%8A%A8-Qwen3-Coder-Next-FP8"><span class="toc-number">1.4.2.</span> <span class="toc-text">4.2 启动 Qwen3-Coder-Next-FP8</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#4-3-Docker-%E5%8F%82%E6%95%B0%E8%AF%B4%E6%98%8E"><span class="toc-number">1.4.3.</span> <span class="toc-text">4.3 Docker 参数说明</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#4-4-vLLM-serve-%E5%8F%82%E6%95%B0%E8%AF%B4%E6%98%8E"><span class="toc-number">1.4.4.</span> <span class="toc-text">4.4 vLLM serve 参数说明</span></a></li></ol></li><li class="toc-item toc-level-2"><a class="toc-link" href="#5-%E7%94%A8%E6%9C%AC%E6%9C%BA-venv-%E5%90%AF%E5%8A%A8%E6%96%B0%E7%89%88%E6%9E%B6%E6%9E%84%E6%A8%A1%E5%9E%8B"><span class="toc-number">1.5.</span> <span class="toc-text">5. 用本机 venv 启动新版架构模型</span></a><ol class="toc-child"><li class="toc-item toc-level-3"><a class="toc-link" href="#5-1-%E5%90%AF%E5%8A%A8-Qwen3-6-35B-A3B-FP8"><span class="toc-number">1.5.1.</span> <span class="toc-text">5.1 启动 Qwen3.6-35B-A3B-FP8</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#5-2-%E5%90%AF%E5%8A%A8-Qwen3-6-27B-FP8"><span class="toc-number">1.5.2.</span> <span class="toc-text">5.2 启动 Qwen3.6-27B-FP8</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#5-3-%E5%90%AF%E5%8A%A8-Qwen3-5-35B-A3B"><span class="toc-number">1.5.3.</span> <span class="toc-text">5.3 启动 Qwen3.5-35B-A3B</span></a></li></ol></li><li class="toc-item toc-level-2"><a class="toc-link" href="#6-API-%E8%BF%9E%E9%80%9A%E6%80%A7%E6%B5%8B%E8%AF%95"><span class="toc-number">1.6.</span> <span class="toc-text">6. API 连通性测试</span></a><ol class="toc-child"><li class="toc-item toc-level-3"><a class="toc-link" href="#6-1-%E6%9F%A5%E7%9C%8B%E6%A8%A1%E5%9E%8B%E5%88%97%E8%A1%A8"><span class="toc-number">1.6.1.</span> <span class="toc-text">6.1 查看模型列表</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#6-2-Chat-Completions-%E6%B5%8B%E8%AF%95"><span class="toc-number">1.6.2.</span> <span class="toc-text">6.2 Chat Completions 测试</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#6-3-Python-SDK-%E6%B5%8B%E8%AF%95"><span class="toc-number">1.6.3.</span> <span class="toc-text">6.3 Python SDK 测试</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#6-4-opencode-%E5%B1%80%E5%9F%9F%E7%BD%91%E6%8E%A5%E5%85%A5"><span class="toc-number">1.6.4.</span> <span class="toc-text">6.4 opencode 局域网接入</span></a></li></ol></li><li class="toc-item toc-level-2"><a class="toc-link" href="#7-Benchmark-%E5%8E%8B%E6%B5%8B"><span class="toc-number">1.7.</span> <span class="toc-text">7. Benchmark 压测</span></a><ol class="toc-child"><li class="toc-item toc-level-3"><a class="toc-link" href="#7-1-%E7%9F%AD%E4%B8%8A%E4%B8%8B%E6%96%87%E5%9F%BA%E7%BA%BF"><span class="toc-number">1.7.1.</span> <span class="toc-text">7.1 短上下文基线</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#7-2-%E4%B8%AD%E7%AD%89%E4%BB%A3%E7%A0%81%E4%B8%8A%E4%B8%8B%E6%96%87"><span class="toc-number">1.7.2.</span> <span class="toc-text">7.2 中等代码上下文</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#7-3-%E5%A4%9A%E4%BA%BA%E5%B9%B6%E5%8F%91"><span class="toc-number">1.7.3.</span> <span class="toc-text">7.3 多人并发</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#7-4-16K-%E9%95%BF%E4%B8%8A%E4%B8%8B%E6%96%87"><span class="toc-number">1.7.4.</span> <span class="toc-text">7.4 16K 长上下文</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#7-5-Benchmark-%E5%8F%82%E6%95%B0%E8%AF%B4%E6%98%8E"><span class="toc-number">1.7.5.</span> <span class="toc-text">7.5 Benchmark 参数说明</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#7-6-%E5%8E%8B%E6%B5%8B%E6%8C%87%E6%A0%87%E8%AF%B4%E6%98%8E"><span class="toc-number">1.7.6.</span> <span class="toc-text">7.6 压测指标说明</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#7-7-%E7%9C%9F%E5%AE%9E-Agent-%E4%BB%BB%E5%8A%A1%E6%B5%8B%E8%AF%95%EF%BC%9A%E4%B8%80%E7%BB%B4-FEM-%E7%A8%8B%E5%BA%8F"><span class="toc-number">1.7.7.</span> <span class="toc-text">7.7 真实 Agent 任务测试：一维 FEM 程序</span></a></li></ol></li><li class="toc-item toc-level-2"><a class="toc-link" href="#8-%E5%B8%B8%E7%94%A8%E8%B0%83%E5%8F%82%E5%BB%BA%E8%AE%AE"><span class="toc-number">1.8.</span> <span class="toc-text">8. 常用调参建议</span></a><ol class="toc-child"><li class="toc-item toc-level-3"><a class="toc-link" href="#8-1-%E5%8F%AA%E5%81%9A%E6%9C%AC%E6%9C%BA-%E5%8D%95%E4%BA%BA%E4%BB%A3%E7%A0%81-Agent"><span class="toc-number">1.8.1.</span> <span class="toc-text">8.1 只做本机 &#x2F; 单人代码 Agent</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#8-2-%E4%B8%AD%E7%AD%89%E4%BB%A3%E7%A0%81%E5%BA%93%E4%B8%8A%E4%B8%8B%E6%96%87"><span class="toc-number">1.8.2.</span> <span class="toc-text">8.2 中等代码库上下文</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#8-3-%E9%95%BF%E4%B8%8A%E4%B8%8B%E6%96%87%E5%8D%95%E4%BA%BA%E4%BB%BB%E5%8A%A1"><span class="toc-number">1.8.3.</span> <span class="toc-text">8.3 长上下文单人任务</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#8-4-%E8%BF%91-128K-%E4%B8%8A%E4%B8%8B%E6%96%87"><span class="toc-number">1.8.4.</span> <span class="toc-text">8.4 近 128K 上下文</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#8-5-%E5%A4%9A%E4%BA%BA%E5%B9%B6%E5%8F%91"><span class="toc-number">1.8.5.</span> <span class="toc-text">8.5 多人并发</span></a></li></ol></li><li class="toc-item toc-level-2"><a class="toc-link" href="#9-%E5%81%9C%E6%AD%A2%E6%9C%8D%E5%8A%A1%E5%92%8C%E6%9F%A5%E7%9C%8B%E6%97%A5%E5%BF%97"><span class="toc-number">1.9.</span> <span class="toc-text">9. 停止服务和查看日志</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#10-%E6%8E%A8%E8%8D%90%E8%90%BD%E5%9C%B0%E9%85%8D%E7%BD%AE"><span class="toc-number">1.10.</span> <span class="toc-text">10. 推荐落地配置</span></a></li></ol></li></ol></div></div><div class="card-widget card-recent-post"><div class="item-headline"><i class="fas fa-history"></i><span>最新文章</span></div><div class="aside-list"><div class="aside-list-item"><a class="thumbnail" href="/2026/06/03/dgx-spark-local-vllm/" title="DGX Spark 部署本地模型"><img src="/images/dgx-spark-local-vllm/image-20260528152602900-1779953170838-1-1779953175004-3.png" onerror="this.onerror=null;this.src='/img/404.jpg'" alt="DGX Spark 部署本地模型"/></a><div class="content"><a class="title" href="/2026/06/03/dgx-spark-local-vllm/" title="DGX Spark 部署本地模型">DGX Spark 部署本地模型</a><time datetime="2026-06-03T15:39:05.000Z" title="发表于 2026-06-03 23:39:05">2026-06-03</time></div></div><div class="aside-list-item"><a class="thumbnail" href="/2026/05/16/pytorch-tensor-autograd/" title="PyTorch学习 1：张量Tensor、计算图、前向传播、反向传播、梯度计算与更新"><img src="/images/pytorch-tensor-autograd/DAG_example-1778905120451-2.png" onerror="this.onerror=null;this.src='/img/404.jpg'" alt="PyTorch学习 1：张量Tensor、计算图、前向传播、反向传播、梯度计算与更新"/></a><div class="content"><a class="title" href="/2026/05/16/pytorch-tensor-autograd/" title="PyTorch学习 1：张量Tensor、计算图、前向传播、反向传播、梯度计算与更新">PyTorch学习 1：张量Tensor、计算图、前向传播、反向传播、梯度计算与更新</a><time datetime="2026-05-16T05:45:00.000Z" title="发表于 2026-05-16 13:45:00">2026-05-16</time></div></div><div class="aside-list-item"><a class="thumbnail" href="/2026/04/28/twt-simulation-design-handbook/" title="螺旋线行波管仿真设计手册"><img src="/images/TWT.png" onerror="this.onerror=null;this.src='/img/404.jpg'" alt="螺旋线行波管仿真设计手册"/></a><div class="content"><a class="title" href="/2026/04/28/twt-simulation-design-handbook/" title="螺旋线行波管仿真设计手册">螺旋线行波管仿真设计手册</a><time datetime="2026-04-28T10:20:00.000Z" title="发表于 2026-04-28 18:20:00">2026-04-28</time></div></div></div></div></div></div></main><footer id="footer"><div class="footer-other"><div class="footer-copyright"><span class="copyright">&copy;&nbsp;2026 By Jiaxiang Zhou</span><span class="framework-info"><span>框架 </span><a target="_blank" rel="noopener" href="https://hexo.io">Hexo 8.1.1</a><span class="footer-separator">|</span><span>主题 </span><a target="_blank" rel="noopener" href="https://github.com/jerryc127/hexo-theme-butterfly">Butterfly 5.5.4</a></span></div><div class="footer_custom_text">文章作者：Jiaxiang Zhou&nbsp;&nbsp;|&nbsp;&nbsp;本站文章如未特别声明，均采用 CC BY-NC-SA 4.0 协议。</div></div></footer></div><div id="rightside"><div id="rightside-config-hide"><button id="readmode" type="button" title="阅读模式"><i class="fas fa-book-open"></i></button><button id="darkmode" type="button" title="日间和夜间模式切换"><i class="fas fa-adjust"></i></button><button id="hide-aside-btn" type="button" title="单栏和双栏切换"><i class="fas fa-arrows-alt-h"></i></button></div><div id="rightside-config-show"><button id="rightside-config" type="button" title="设置"><i class="fas fa-cog fa-spin"></i></button><button class="close" id="mobile-toc-button" type="button" title="目录"><i class="fas fa-list-ul"></i></button><a id="to_comment" href="#post-comment" title="前往评论"><i class="fas fa-comments"></i></a><button id="go-up" type="button" title="回到顶部"><span class="scroll-percent"></span><i class="fas fa-arrow-up"></i></button></div></div><div><script src="/js/utils.js?v=5.5.4"></script><script src="/js/main.js?v=5.5.4"></script><div class="js-pjax"><script>(() => {
+  const isShuoshuo = GLOBAL_CONFIG_SITE.pageType === 'shuoshuo'
+  const option = {"data-category":"Announcements","data-mapping":"pathname","data-lang":"zh-CN"}
+
+  const getGiscusTheme = theme => theme === 'dark' ? 'dark' : 'light'
+
+  const createScriptElement = config => {
+    const ele = document.createElement('script')
+    Object.entries(config).forEach(([key, value]) => {
+      ele.setAttribute(key, value)
+    })
+    return ele
+  }
+
+  const loadGiscus = (el = document, key) => {
+    const mappingConfig = isShuoshuo
+      ? { 'data-mapping': 'specific', 'data-term': key }
+      : { 'data-mapping': (option && option['data-mapping']) || 'pathname' }
+
+    const giscusConfig = {
+      src: 'https://giscus.app/client.js',
+      'data-repo': 'zhoujiaxiang-time/zjx',
+      'data-repo-id': 'R_kgDOSOznHA',
+      'data-category-id': 'DIC_kwDOSOznHM4C8CqT',
+      'data-theme': getGiscusTheme(document.documentElement.getAttribute('data-theme')),
+      'data-reactions-enabled': '1',
+      crossorigin: 'anonymous',
+      async: true,
+      ...option,
+      ...mappingConfig
+    }
+
+    const scriptElement = createScriptElement(giscusConfig)
+
+    el.querySelector('#giscus-wrap').appendChild(scriptElement)
+
+    if (isShuoshuo) {
+      window.shuoshuoComment.destroyGiscus = () => {
+        if (el.children.length) {
+          el.innerHTML = ''
+          el.classList.add('no-comment')
+        }
+      }
+    }
+  }
+
+  const changeGiscusTheme = theme => {
+    const iframe = document.querySelector('#giscus-wrap iframe')
+    if (iframe) {
+      const message = {
+        giscus: {
+          setConfig: {
+            theme: getGiscusTheme(theme)
+          }
+        }
+      }
+      iframe.contentWindow.postMessage(message, 'https://giscus.app')
+    }
+  }
+
+  btf.addGlobalFn('themeChange', changeGiscusTheme, 'giscus')
+
+  if (isShuoshuo) {
+    'Giscus' === 'Giscus'
+      ? window.shuoshuoComment = { loadComment: loadGiscus }
+      : window.loadOtherComment = loadGiscus
+    return
+  }
+
+  if ('Giscus' === 'Giscus' || !false) {
+    if (false) btf.loadComment(document.getElementById('giscus-wrap'), loadGiscus)
+    else loadGiscus()
+  } else {
+    window.loadOtherComment = loadGiscus
+  }
+})()</script></div><script defer src="/js/zjxtime-interactions.js"></script></div></body></html>
